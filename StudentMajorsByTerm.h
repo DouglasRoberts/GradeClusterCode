@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////
 // This class has been automatically generated on
-// Wed Feb 24 14:12:14 2016 by ROOT version 6.04/14
+// Wed Feb 24 15:38:20 2016 by ROOT version 6.04/14
 // from TTree StudentMajorsByTerm/Student Majors By Term
 // found on file: UmdLA.root
 //////////////////////////////////////////////////////////
