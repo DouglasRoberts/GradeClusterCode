@@ -1,2 +1,2 @@
 # GradeClusterCode
-ROOT code for looking at grade clustering
+This repository contains code for looking at grading clusters.  It requires ROOT to be installed on you system in oder to run.
