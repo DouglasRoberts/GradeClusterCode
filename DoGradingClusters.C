@@ -16,6 +16,13 @@
 #include <vector>
 
 TString sectionFile = "Sections.root";
+
+bool ClusterCompare(GradeCluster* lhs, GradeCluster* rhs) {
+	double lhs_mean = lhs->gradeHist()->GetMean();
+	double rhs_mean = rhs->gradeHist()->GetMean();
+	return lhs_mean > rhs_mean;
+}
+
 void CreateSectionsFile() {
 
 	MakeCourseSections secObject;
@@ -231,6 +238,10 @@ void DoGradingClusters(int maxSize = -1) {
 		
 		countIters++;
 	}
+	
+	// Sort final clusters
+	std::sort(clusters.begin(), clusters.end(), ClusterCompare);
+	
 	c2->cd(1);
 	minChi2Hist->DrawCopy("HIST");
 	c2->cd(2);
@@ -248,6 +259,8 @@ void DoGradingClusters(int maxSize = -1) {
 	clusterTree->Branch("cluster", &aCluster);
 	for (std::size_t iCluster = 0; iCluster < clusters.size(); iCluster++) {
 		aCluster = *(clusters[iCluster]);
+		TString newTitle; newTitle.Form("Grading Cluster %d", (int)iCluster);
+		aCluster.gradeHist()->SetTitle(newTitle);
 //		aCluster.gradeHist()->DrawCopy();
 		clusterTree->Fill();
 	}
