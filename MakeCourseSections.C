@@ -14,8 +14,13 @@
 #include <TSystem.h>
 #include <TBenchmark.h>
 
+#include <TSQLServer.h>
+#include <TSQLResult.h>
+#include <TSQLRow.h>
+
 int MakeCourseSections::MakeSections(TString sectionFile)
 {
+	
 	typedef std::tuple<TString, int, int> keyType;
 	typedef std::map<keyType, SectionInfo> mapType;
 	typedef std::map<TString, TString> prefixMapType;
@@ -24,6 +29,78 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	int creditCut = 3;
 	// Only look at courses taken for "Regular" grading method
 	TString grMethod = "R";
+	
+	// Try sql version
+	TSQLServer* db = TSQLServer::Connect("sqlite://LearningAnalytics.db", "", "");
+	if (0 == db) {
+		std::cout << "Error connecting to database" << std::endl;
+		return 0;
+	}
+	TSQLRow * row;
+	TSQLResult* res;
+	
+	printf("\nList of all tables in LearningAnalytics.db\n");
+	res = db->GetTables("LearningAnalytics");
+	while ((row = res->Next())) {
+		printf("%s\n", row->GetField(0));
+		delete row;
+	}
+	delete res;
+	
+	printf("\nList all columns in student_courses_by_term table\n");
+	res = db->GetColumns("LearningAnalytics", "student_courses_by_term");
+	while ((row = res->Next())) {
+		printf("%s\n", row->GetField(1));
+		delete row;
+	}
+	delete res;
+	
+	TString query = "SELECT ";
+	query += "s.CRS_CREDIT, ";			//0
+	query += "s.CRS_PREFIX, ";			//1
+	query += "s.CRS_GRD_METH_CD, ";		//2
+	query += "s.COURSE, ";				//3
+	query += "s.SECTION, ";				//4
+	query += "s.TERM, ";				//5
+	query += "s.CRS_GRADE, ";			//6
+	query += "p.Coll ";					//7
+	
+	query += "FROM student_courses_by_term AS s ";
+	query += "LEFT JOIN PrefixCollegeMap AS p ";
+	query += "ON s.CRS_PREFIX = p.CrsPrefix ";
+	query += "LIMIT 100";
+	res = db->Query(query.Data());
+//	res = db->Query("SELECT s.CRS_CREDIT, s.CRS_PREFIX, p.Coll FROM student_courses_by_term AS s LEFT JOIN PrefixCollegeMap AS p ON s.CRS_PREFIX = p.CrsPrefix LIMIT 10");
+//	res = db->Query("SELECT s.CRS_CREDIT, s.CRS_PREFIX FROM student_courses_by_term AS s LIMIT 10");
+//	int nRows = res->GetRowCount();
+	int nRows = 0;
+	int nFields = res->GetFieldCount();
+	
+	while ((row = res->Next())) {
+		nRows++;
+		
+		float credits = atof(row->GetField(0));
+		TString prefix = row->GetField(1);
+		TString grd_meth_cd = row->GetField(2);
+		TString course = row->GetField(3);
+		TString section = row->GetField(4);
+		TString term = row->GetField(5);
+		TString grade = row->GetField(6);
+		TString college = row->GetField(7);
+		printf("CRS_CREDIT = %f, CRS_PREFIX = %s, COLLEGE = %s\n", credits, prefix.Data(), college.Data());
+		
+		if ((credits < creditCut) || (grd_meth_cd != grMethod)) {
+			delete row;
+			continue;
+		}
+		delete row;
+		if (college == "") college = "UNKN";
+//		keyType key(course, section, term);
+	}
+	delete res;
+	std::cout << "Rows, Fields = " << nRows << ", " << nFields << std::endl;
+	
+	return 0;
 	
 	if (fChain == 0) return 0;
 	
