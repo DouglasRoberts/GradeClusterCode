@@ -30,6 +30,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	// Only look at courses taken for "Regular" grading method
 	TString grMethod = "R";
 	
+	gBenchmark->Start("sql");
 	// Try sql version
 	TSQLServer* db = TSQLServer::Connect("sqlite://LearningAnalytics.db", "", "");
 	if (0 == db) {
@@ -68,7 +69,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	query += "FROM student_courses_by_term AS s ";
 	query += "LEFT JOIN PrefixCollegeMap AS p ";
 	query += "ON s.CRS_PREFIX = p.CrsPrefix ";
-	query += "LIMIT 100";
+//	query += "LIMIT 100";
 	res = db->Query(query.Data());
 //	res = db->Query("SELECT s.CRS_CREDIT, s.CRS_PREFIX, p.Coll FROM student_courses_by_term AS s LEFT JOIN PrefixCollegeMap AS p ON s.CRS_PREFIX = p.CrsPrefix LIMIT 10");
 //	res = db->Query("SELECT s.CRS_CREDIT, s.CRS_PREFIX FROM student_courses_by_term AS s LIMIT 10");
@@ -87,7 +88,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 		TString term = row->GetField(5);
 		TString grade = row->GetField(6);
 		TString college = row->GetField(7);
-		printf("CRS_CREDIT = %f, CRS_PREFIX = %s, COLLEGE = %s\n", credits, prefix.Data(), college.Data());
+//		printf("CRS_CREDIT = %f, CRS_PREFIX = %s, COLLEGE = %s\n", credits, prefix.Data(), college.Data());
 		
 		if ((credits < creditCut) || (grd_meth_cd != grMethod)) {
 			delete row;
@@ -100,10 +101,13 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	delete res;
 	std::cout << "Rows, Fields = " << nRows << ", " << nFields << std::endl;
 	
-	return 0;
+	gBenchmark->Show("sql");
+	
+//	return 0;
 	
 	if (fChain == 0) return 0;
 	
+	gBenchmark->Start("TTree");
 	TFile* file = new TFile("UmdLA.root");
 	prefixMapType* prefixCollegeMap = 0;
 	file->GetObject("PrefixCollegeMap", prefixCollegeMap);
@@ -150,6 +154,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 				
 	}
 
+	gBenchmark->Show("TTree");
 
 	double avgEnroll = (double)nentries/(double)sectionMap.size();
 	std::cout << "Average enrollment (?) = " <<  avgEnroll << std::endl;
