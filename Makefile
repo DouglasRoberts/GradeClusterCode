@@ -5,10 +5,8 @@ else
 endif
 
 
-MYCLASSES := Course
-MYCLASSES += MakeCourseSections SectionInfo GradeCluster MyFunctions
-MYCLASSES += EnglishCodes CourseRules StudentCoursesByTerm
-MYCLASSES += StudentDegreesByTerm StudentMajorsByTerm StudentTransferCoursesByTerm StudentEnrollmentsByTerm
+MYCLASSES := SectionInfo
+MYCLASSES += GradeCluster MyFunctions
 
 MYHEADERS := $(addsuffix .h, $(MYCLASSES))
 MYSOURCES := $(addsuffix .C, $(MYCLASSES))

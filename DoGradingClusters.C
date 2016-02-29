@@ -1,8 +1,8 @@
 // This is the file of function related to doing the grading clusters code
 #include <iostream>
-#include "MakeCourseSections.h"
 #include "MyFunctions.h"
 #include "GradeCluster.h"
+#include "SectionInfo.h"
 #include <TString.h>
 #include <TFile.h>
 #include <TH1F.h>
@@ -13,7 +13,14 @@
 #include <TError.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+#include <TTree.h>
+
+#include <TSQLServer.h>
+#include <TSQLResult.h>
+#include <TSQLRow.h>
+
 #include <vector>
+#include <map>
 
 TString sectionFile = "Sections.root";
 
@@ -25,11 +32,118 @@ bool ClusterCompare(GradeCluster* lhs, GradeCluster* rhs) {
 
 void CreateSectionsFile() {
 
-	MakeCourseSections secObject;
+	typedef std::tuple<TString, int, int> keyType;
+	typedef std::map<keyType, SectionInfo> mapType;
+	mapType sectionMap;
+			
+	// Only look at courses that were 3 or more credits...
+	int creditCut = 3;
+	// Only look at courses taken for "Regular" grading method
+	TString grMethod = "R";
 	
-	int nSections = secObject.MakeSections(sectionFile);
+	gBenchmark->Start("sql");
 	
-	std::cout << "Number of sections = " << nSections << std::endl;
+	// Connect to database
+	TSQLServer* db = TSQLServer::Connect("sqlite://LearningAnalytics.db", "", "");
+	if (0 == db) {
+		std::cout << "Error connecting to database" << std::endl;
+		return;
+	}
+	TSQLRow * row;
+	TSQLResult* res;
+	
+	TString query = "SELECT ";
+	query += "s.CRS_CREDIT, ";			//0
+	query += "s.CRS_PREFIX, ";			//1
+	query += "s.CRS_GRD_METH_CD, ";		//2
+	query += "s.COURSE, ";				//3
+	query += "s.SECTION, ";				//4
+	query += "s.TERM, ";				//5
+	query += "s.CRS_GRADE, ";			//6
+	query += "p.Coll ";					//7
+	
+	query += "FROM student_courses_by_term AS s ";
+	query += "LEFT JOIN PrefixCollegeMap AS p ";
+	query += "ON s.CRS_PREFIX = p.CrsPrefix ";
+//	query += "LIMIT 100";
+	res = db->Query(query.Data());
+	int nRows = 0;
+	int nFields = res->GetFieldCount();
+
+	while ((row = res->Next())) {
+		nRows++;
+		
+		float credits = atof(row->GetField(0));
+		TString prefix = row->GetField(1);
+		TString grd_meth_cd = row->GetField(2);
+		TString course = row->GetField(3);
+		TString section = row->GetField(4);
+		TString term = row->GetField(5);
+		TString grade = row->GetField(6);
+		TString college = row->GetField(7);
+		
+		if ((credits < creditCut) || (grd_meth_cd != grMethod)) {
+			delete row;
+			continue;
+		}
+		if (college == "") college = "UNKN";
+		keyType key(course, section.Atoi(), term.Atoi());
+		//Should insert new info if key isn't there.  Either way, returns iterator pointing to object with this key.
+		SectionInfo info;
+		auto insertPair = sectionMap.insert(std::make_pair(key, info));
+		SectionInfo& thisInfo = insertPair.first->second;
+		if (insertPair.second) {
+			thisInfo.Initialize(course, section.Atoi(), term.Atoi(), college);
+		}
+		SectionInfo::GrdRecord record;
+		record.grade = grade;
+		record.gradeMethod = grd_meth_cd;
+		thisInfo.AddRecord(record);
+
+		delete row;				
+	}
+	delete res;
+	std::cout << "Rows, Fields = " << nRows << ", " << nFields << std::endl;
+	gBenchmark->Show("sql");
+	
+	TFile* fOut = new TFile(sectionFile, "RECREATE");
+	TH1F* h1 = new TH1F("h1", "Enrollments", 100, 0., 1000.);
+	TTree* secTree = new TTree("Sections", "Grade Info on Sections");
+	TH1F* gradeHist = new TH1F("grades", "Grades", 13, 0., 13.);
+	
+	MyFunctions::GradeLabels(gradeHist->GetXaxis());
+		
+	SectionInfo info;
+	secTree->Branch("secInfo", &info);
+	int maxEnrollment = 0;
+	for (auto const item: sectionMap) {
+		info = item.second;
+		h1->Fill(info.nRecords());
+		for (auto &i : info.Grades()) {
+			if (gradeHist->GetXaxis()->FindFixBin(i.grade) != -1)
+				gradeHist->Fill(i.grade, 1.);
+		}
+		maxEnrollment = (info.nRecords() > maxEnrollment ? info.nRecords() : maxEnrollment);
+		secTree->Fill();
+	}
+	gradeHist->LabelsDeflate("X");
+	std::cout << "maxEnrollment = " << maxEnrollment << std::endl;
+	
+	h1->DrawCopy();
+	gradeHist->DrawCopy();
+	
+	h1->Write();
+	gradeHist->Write();
+	secTree->Write();
+	fOut->Close();
+	
+	
+
+//	MakeCourseSections secObject;
+	
+//	int nSections = secObject.MakeSections(sectionFile);
+	
+//	std::cout << "Number of sections = " << nSections << std::endl;
 	
 	return;
 }

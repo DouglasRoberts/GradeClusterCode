@@ -24,13 +24,15 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	typedef std::tuple<TString, int, int> keyType;
 	typedef std::map<keyType, SectionInfo> mapType;
 	typedef std::map<TString, TString> prefixMapType;
-	
+	mapType sectionMap;
+			
 	// Only look at courses that were 3 or more credits...
 	int creditCut = 3;
 	// Only look at courses taken for "Regular" grading method
 	TString grMethod = "R";
 	
 	gBenchmark->Start("sql");
+	
 	// Try sql version
 	TSQLServer* db = TSQLServer::Connect("sqlite://LearningAnalytics.db", "", "");
 	if (0 == db) {
@@ -76,7 +78,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 //	int nRows = res->GetRowCount();
 	int nRows = 0;
 	int nFields = res->GetFieldCount();
-	
+
 	while ((row = res->Next())) {
 		nRows++;
 		
@@ -94,13 +96,24 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 			delete row;
 			continue;
 		}
-		delete row;
 		if (college == "") college = "UNKN";
-//		keyType key(course, section, term);
+		keyType key(course, section.Atoi(), term.Atoi());
+		//Should insert new info if key isn't there.  Either way, returns iterator pointing to object with this key.
+		SectionInfo info;
+		auto insertPair = sectionMap.insert(std::make_pair(key, info));
+		SectionInfo& thisInfo = insertPair.first->second;
+		if (insertPair.second) {
+			thisInfo.Initialize(course, section.Atoi(), term.Atoi(), college);
+		}
+		SectionInfo::GrdRecord record;
+		record.grade = grade;
+		record.gradeMethod = grd_meth_cd;
+		thisInfo.AddRecord(record);
+
+		delete row;				
 	}
 	delete res;
 	std::cout << "Rows, Fields = " << nRows << ", " << nFields << std::endl;
-	
 	gBenchmark->Show("sql");
 	
 //	return 0;
@@ -108,18 +121,16 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 	if (fChain == 0) return 0;
 	
 	gBenchmark->Start("TTree");
-	TFile* file = new TFile("UmdLA.root");
-	prefixMapType* prefixCollegeMap = 0;
-	file->GetObject("PrefixCollegeMap", prefixCollegeMap);
-	std::cout << "Prefix Map Entries = " << prefixCollegeMap->size() << std::endl;
+//	TFile* file = new TFile("UmdLA.root");
+//	prefixMapType* prefixCollegeMap = 0;
+//	file->GetObject("PrefixCollegeMap", prefixCollegeMap);
+//	std::cout << "Prefix Map Entries = " << prefixCollegeMap->size() << std::endl;
 	
 	Long64_t nentries = fChain->GetEntriesFast();
 	
 	std::cout << "Entries in StudentCoursesByTerm = " << nentries << std::endl;
 	
-	
-	mapType sectionMap;
-	
+/*	
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		Long64_t ientry = LoadTree(jentry);
 		if (ientry < 0) break;
@@ -153,7 +164,7 @@ int MakeCourseSections::MakeSections(TString sectionFile)
 		thisInfo.AddRecord(record);
 				
 	}
-
+*/
 	gBenchmark->Show("TTree");
 
 	double avgEnroll = (double)nentries/(double)sectionMap.size();
