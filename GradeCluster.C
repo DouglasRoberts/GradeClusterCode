@@ -2,7 +2,7 @@
 
 ClassImp(GradeCluster)
 	
-GradeCluster::GradeCluster(SectionInfo sect) {	
+GradeCluster::GradeCluster(SectionInfo sect) {
 	_cluster.push_back(sect);
 	_hist = sect.HistClone();
 	_hist->SetTitle("Grading Cluster");

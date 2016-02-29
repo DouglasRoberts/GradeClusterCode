@@ -4,15 +4,15 @@
 
 ClassImp(SectionInfo)
 	
-void SectionInfo::Initialize(TString course, int section, int term, TString college)
+void SectionInfo::Initialize(TString course, TString section, int term, TString college)
 {
 	_crsName = course;
 	_secNum = section;
 	_term = term;
 	_collegeSD = college;
 	
-	TString histName = "grades_" + _crsName;
-	histName += TString::Format("_%d_%d", _secNum, _term);
+	TString histName = "grades_" + _crsName + "_" + _secNum;
+	histName += TString::Format("_%d", _term);
 
 	_gradeHist = new TH1F(histName, "Grades for " + course, 13, 0., 13.);
 	MyFunctions::GradeLabels(_gradeHist->GetXaxis());

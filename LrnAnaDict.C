@@ -219,7 +219,7 @@ void SectionInfo::Streamer(TBuffer &R__b)
       Version_t R__v = R__b.ReadVersion(&R__s, &R__c); if (R__v) { }
       TObject::Streamer(R__b);
       _crsName.Streamer(R__b);
-      R__b >> _secNum;
+      _secNum.Streamer(R__b);
       R__b >> _term;
       {
          vector<SectionInfo::GrdRecord> &R__stl =  _grades;
@@ -245,7 +245,7 @@ void SectionInfo::Streamer(TBuffer &R__b)
       R__c = R__b.WriteVersion(SectionInfo::IsA(), kTRUE);
       TObject::Streamer(R__b);
       _crsName.Streamer(R__b);
-      R__b << _secNum;
+      _secNum.Streamer(R__b);
       R__b << _term;
       {
          vector<SectionInfo::GrdRecord> &R__stl =  _grades;
@@ -497,7 +497,7 @@ namespace {
     };
     static const char* includePaths[] = {
 "/Applications/root_v6.04.14/include",
-"/Users/roberts/LearningAnalytics/GradeClusterCode/",
+"/Volumes/Macintosh_HD_2/LearningAnalytics/GradeClusterCode/",
 0
     };
     static const char* fwdDeclCode = 

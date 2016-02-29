@@ -18,7 +18,7 @@ public:
 	};
 	
 	TString CrsName() const {return _crsName;}
-	int SecNum() const {return _secNum;}
+	TString SecNum() const {return _secNum;}
 	int Term() const {return _term;}
 	TString AcademicYear() {return MyFunctions::academicYear(_term);}
 	TString College() const {return _collegeSD;}
@@ -26,9 +26,9 @@ public:
 	TH1F* HistClone() const {return (TH1F*)(_gradeHist->Clone());}
 	TH1F* Hist() const {return _gradeHist;}
 	
-	void Initialize(TString course, int section, int term, TString college);
+	void Initialize(TString course, TString section, int term, TString college);
 	void SetCrsName(TString name) {_crsName = name;}
-	void SetSecNum(int sec) {_secNum = sec;}
+	void SetSecNum(TString sec) {_secNum = sec;}
 	void SetTerm(int term) {_term = term;}
 	void SetCollege(TString collegeSD) {_collegeSD = collegeSD;}
 	
@@ -37,7 +37,7 @@ public:
 	
 private:
 	TString _crsName;
-	int _secNum;
+	TString _secNum;
 	int _term;
 	std::vector<GrdRecord> _grades;
 	TH1F* _gradeHist;

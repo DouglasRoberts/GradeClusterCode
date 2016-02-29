@@ -31,8 +31,10 @@ bool ClusterCompare(GradeCluster* lhs, GradeCluster* rhs) {
 }
 
 void CreateSectionsFile() {
+	
+	std::cout << "About to create Sections.root file from SQLite database..." << std::endl;
 
-	typedef std::tuple<TString, int, int> keyType;
+	typedef std::tuple<TString, TString, int> keyType;
 	typedef std::map<keyType, SectionInfo> mapType;
 	mapType sectionMap;
 			
@@ -87,13 +89,16 @@ void CreateSectionsFile() {
 			continue;
 		}
 		if (college == "") college = "UNKN";
-		keyType key(course, section.Atoi(), term.Atoi());
+		std::cout << "College = " << college << std::endl;
+		
+		keyType key(course, section, term.Atoi());
 		//Should insert new info if key isn't there.  Either way, returns iterator pointing to object with this key.
 		SectionInfo info;
 		auto insertPair = sectionMap.insert(std::make_pair(key, info));
 		SectionInfo& thisInfo = insertPair.first->second;
 		if (insertPair.second) {
-			thisInfo.Initialize(course, section.Atoi(), term.Atoi(), college);
+			std::cout << "Found a new section (?), college = " << college << std::endl;
+			thisInfo.Initialize(course, section, term.Atoi(), college);
 		}
 		SectionInfo::GrdRecord record;
 		record.grade = grade;
@@ -115,9 +120,11 @@ void CreateSectionsFile() {
 		
 	SectionInfo info;
 	secTree->Branch("secInfo", &info);
+	int nSections = 0;
 	int maxEnrollment = 0;
 	for (auto const item: sectionMap) {
 		info = item.second;
+		std::cout << "Writing out section infor for college " << info.College() << endl;
 		h1->Fill(info.nRecords());
 		for (auto &i : info.Grades()) {
 			if (gradeHist->GetXaxis()->FindFixBin(i.grade) != -1)
@@ -125,6 +132,7 @@ void CreateSectionsFile() {
 		}
 		maxEnrollment = (info.nRecords() > maxEnrollment ? info.nRecords() : maxEnrollment);
 		secTree->Fill();
+		nSections++;
 	}
 	gradeHist->LabelsDeflate("X");
 	std::cout << "maxEnrollment = " << maxEnrollment << std::endl;
@@ -137,13 +145,7 @@ void CreateSectionsFile() {
 	secTree->Write();
 	fOut->Close();
 	
-	
-
-//	MakeCourseSections secObject;
-	
-//	int nSections = secObject.MakeSections(sectionFile);
-	
-//	std::cout << "Number of sections = " << nSections << std::endl;
+	std::cout << "Number of sections = " << nSections << std::endl;
 	
 	return;
 }
@@ -189,6 +191,7 @@ void PlotSectionStuff() {
 		secTree->GetEvent(i);
 		gradeHist->Add(secInfo->Hist());
 		TString thisCollege = secInfo->College();
+		std::cout << "In plot, thisCollege = " << thisCollege << std::endl;
 		if (collegeHist->GetXaxis()->FindFixBin(secInfo->College()) == -1)
 			thisCollege = "OTHR";		
 		collegeHist->Fill(thisCollege, secInfo->Hist()->Integral());
@@ -300,13 +303,13 @@ void DoGradingClusters(int maxSize = -1) {
 		secTree->GetEntry(jentry);
 		int termTerm = secInfo->Term() % 100;
 		if (termTerm != fallTerm && termTerm != springTerm) continue;
-		if (secInfo->nRecords() < minEnroll) continue;
 		if (secInfo->Hist()->GetEntries() < minEnroll) continue;
 		nGoodSections++;
 		// Create a grade cluster for each good section to seed the clustering algorithm...
 		GradeCluster* cluster = new GradeCluster(*secInfo);
 		clusters.push_back(cluster);
 		
+		std::cout << "Section College = " << secInfo->College() << std::endl;
 		if (nGoodSections == maxSize) break;
 	}
 	std::cout << "Number of good sections used to seed clustering = " << nGoodSections << std::endl;
@@ -375,7 +378,6 @@ void DoGradingClusters(int maxSize = -1) {
 		aCluster = *(clusters[iCluster]);
 		TString newTitle; newTitle.Form("Grading Cluster %d", (int)iCluster);
 		aCluster.gradeHist()->SetTitle(newTitle);
-//		aCluster.gradeHist()->DrawCopy();
 		clusterTree->Fill();
 	}
 	
@@ -494,6 +496,7 @@ void PlotClusters() {
 //		TPie* collegePie = new TPie(pieName, pieTitle);
 		MyFunctions::AyLabels(clusAyHist->GetXaxis());
 		for (auto section : aCluster->Cluster()) {
+			std::cout << "Section college = " << section.College() << std::endl;
 			clusAyHist->Fill(section.AcademicYear(), section.Hist()->Integral());
 			if (collegeHist->GetXaxis()->FindFixBin(section.College()) != -1) {
 				collegeHist->Fill(section.College(), section.Hist()->Integral());
