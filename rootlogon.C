@@ -6,6 +6,13 @@
 	// US Letter
 	gStyle->SetPaperSize(20,24);
 	gStyle->SetPalette(55, 0);
+	gStyle->SetOptStat("e");
+	gStyle->SetHistMinimumZero(kTRUE);
+	gStyle->SetLabelSize(0.1);
+	gStyle->SetLabelOffset(0.01);
+	gStyle->SetTitleSize(0.1, "t");
+	gROOT->ForceStyle();
+	
 	
 	
 	// Load Learing Analytics shared library

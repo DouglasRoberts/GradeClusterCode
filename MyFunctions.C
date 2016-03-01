@@ -79,20 +79,21 @@ void MyFunctions::AyLabels(TAxis* axis) {
 }
 
 void MyFunctions::CollegeLabels(TAxis* axis) {
-	axis->SetBinLabel(1, "AGNR");
-	axis->SetBinLabel(2, "ARCH");
-	axis->SetBinLabel(3, "ARHU");
-	axis->SetBinLabel(4, "BSOS");
-	axis->SetBinLabel(5, "BMGT");
-	axis->SetBinLabel(6, "CMNS");
-	axis->SetBinLabel(7, "EDUC");
-	axis->SetBinLabel(8, "ENGR");
-	axis->SetBinLabel(9, "JOUR");
-	axis->SetBinLabel(10, "INFO");
-	axis->SetBinLabel(11, "SPHL");
-	axis->SetBinLabel(12, "PUAF");
-	axis->SetBinLabel(13, "UGST");
-	axis->SetBinLabel(14, "OTHR");
+	int bin = 0;
+	axis->SetBinLabel(++bin, "AGNR");
+	axis->SetBinLabel(++bin, "ARCH");
+	axis->SetBinLabel(++bin, "ARHU");
+	axis->SetBinLabel(++bin, "BSOS");
+	axis->SetBinLabel(++bin, "BMGT");
+	axis->SetBinLabel(++bin, "CMNS");
+	axis->SetBinLabel(++bin, "EDUC");
+	axis->SetBinLabel(++bin, "ENGR");
+	axis->SetBinLabel(++bin, "JOUR");
+//	axis->SetBinLabel(++bin, "INFO");
+	axis->SetBinLabel(++bin, "SPHL");
+//	axis->SetBinLabel(++bin, "PUAF");
+	axis->SetBinLabel(++bin, "UGST");
+	axis->SetBinLabel(++bin, "OTHR");
 	axis->SetCanExtend(false);
 	
 	return;

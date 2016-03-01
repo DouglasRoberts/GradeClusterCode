@@ -14,6 +14,7 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TTree.h>
+#include <TROOT.h>
 
 #include <TSQLServer.h>
 #include <TSQLResult.h>
@@ -89,7 +90,7 @@ void CreateSectionsFile() {
 			continue;
 		}
 		if (college == "") college = "UNKN";
-		std::cout << "College = " << college << std::endl;
+//		std::cout << "College = " << college << std::endl;
 		
 		keyType key(course, section, term.Atoi());
 		//Should insert new info if key isn't there.  Either way, returns iterator pointing to object with this key.
@@ -97,7 +98,7 @@ void CreateSectionsFile() {
 		auto insertPair = sectionMap.insert(std::make_pair(key, info));
 		SectionInfo& thisInfo = insertPair.first->second;
 		if (insertPair.second) {
-			std::cout << "Found a new section (?), college = " << college << std::endl;
+//			std::cout << "Found a new section (?), college = " << college << std::endl;
 			thisInfo.Initialize(course, section, term.Atoi(), college);
 		}
 		SectionInfo::GrdRecord record;
@@ -167,13 +168,13 @@ void PlotSectionStuff() {
 	
 	TFile* outFile = new TFile("SectionPlots.root", "RECREATE");
 	TH1F* gradeHist = new TH1F("allGrades", "All Grades", 13, 0., 13.);
-	TH1F* collegeHist = new TH1F("allColleges", "All College Distribution", 14, 0., 14.);
+	TH1F* collegeHist = new TH1F("allColleges", "All College Distribution", 12, 0., 12.);
 	TH1F* ayHist = new TH1F("allAY", "Academic Year Distribution", 18, 0., 18.);
 	TH2F* grVayHist = new TH2F("grVayHist", "Grades vs. Academic Year", 18, 0., 18., 13, 0., 13.);
 	TH2F* numgrVayHist = new TH2F("numgrVayHist", "Grade Quality Points vs. Academic Year", 18, 0., 10., 41*5, -.05, 4.05);
 	TProfile* grVayProf = new TProfile("grVayProf", "Grade Quality Points vs. Academic Year", 18, 0., 10.);
-	TH2F* numgrVcollegeHist = new TH2F("numgrVcollegeHist", "Grade Quality Points vs. College", 14, 0., 14., 41*5, -.05, 4.05);
-	TProfile* grVcollegeProf = new TProfile("grVcollegeProf", "Grade Quality Points vs. College", 14, 0., 14.);
+	TH2F* numgrVcollegeHist = new TH2F("numgrVcollegeHist", "Grade Quality Points vs. College", 12, 0., 12., 41*5, -.05, 4.05);
+	TProfile* grVcollegeProf = new TProfile("grVcollegeProf", "Grade Quality Points vs. College", 12, 0., 12.);
 	
 	MyFunctions::GradeLabels(gradeHist->GetXaxis());
 	MyFunctions::CollegeLabels(collegeHist->GetXaxis());
@@ -191,7 +192,6 @@ void PlotSectionStuff() {
 		secTree->GetEvent(i);
 		gradeHist->Add(secInfo->Hist());
 		TString thisCollege = secInfo->College();
-		std::cout << "In plot, thisCollege = " << thisCollege << std::endl;
 		if (collegeHist->GetXaxis()->FindFixBin(secInfo->College()) == -1)
 			thisCollege = "OTHR";		
 		collegeHist->Fill(thisCollege, secInfo->Hist()->Integral());
@@ -309,7 +309,7 @@ void DoGradingClusters(int maxSize = -1) {
 		GradeCluster* cluster = new GradeCluster(*secInfo);
 		clusters.push_back(cluster);
 		
-		std::cout << "Section College = " << secInfo->College() << std::endl;
+//		std::cout << "Section College = " << secInfo->College() << std::endl;
 		if (nGoodSections == maxSize) break;
 	}
 	std::cout << "Number of good sections used to seed clustering = " << nGoodSections << std::endl;
@@ -400,6 +400,7 @@ void DoGradingClusters(int maxSize = -1) {
 
 void PlotClusters() {
 	
+	
 	TFile* clusterFile = new TFile("Clusters.root", "READ");
 	TTree* clusterTree = (TTree*)clusterFile->Get("Clusters");
 	GradeCluster* aCluster = 0;
@@ -419,9 +420,9 @@ void PlotClusters() {
 	c1->Divide(3,5);
 	c3->Divide(3,5);
 	c4->Divide(3,5);
-	c5->Divide(3,5);
+	c5->Divide(3,4);
 	
-	TH1F* collegeHistAll = new TH1F("collegeHistAll", "All Clusters College Contribution", 14, 0., 14.);
+	TH1F* collegeHistAll = new TH1F("collegeHistAll", "All Clusters College Contribution", 12, 0., 12.);
 	MyFunctions::CollegeLabels(collegeHistAll->GetXaxis());
 	std::vector<TH1F*> collegeHists;
 
@@ -456,15 +457,15 @@ void PlotClusters() {
 	college = "JOUR";
 	TH1F* JOURClusHist = new TH1F("JOURClusHist", "JOUR Cluster Usage", 15, -0.5, 14.5);
 	collegeClusterMap[college] = JOURClusHist;
-	college = "INFO";
-	TH1F* INFOClusHist = new TH1F("INFOClusHist", "INFO Cluster Usage", 15, -0.5, 14.5);
-	collegeClusterMap[college] = INFOClusHist;
+//	college = "INFO";
+//	TH1F* INFOClusHist = new TH1F("INFOClusHist", "INFO Cluster Usage", 15, -0.5, 14.5);
+//	collegeClusterMap[college] = INFOClusHist;
 	college = "SPHL";
 	TH1F* SPHLClusHist = new TH1F("SPHLClusHist", "SPHL Cluster Usage", 15, -0.5, 14.5);
 	collegeClusterMap[college] = SPHLClusHist;
-	college = "PUAF";
-	TH1F* PUAFClusHist = new TH1F("PUAFClusHist", "PUAF Cluster Usage", 15, -0.5, 14.5);
-	collegeClusterMap[college] = PUAFClusHist;
+//	college = "PUAF";
+//	TH1F* PUAFClusHist = new TH1F("PUAFClusHist", "PUAF Cluster Usage", 15, -0.5, 14.5);
+//	collegeClusterMap[college] = PUAFClusHist;
 	college = "UGST";
 	TH1F* UGSTClusHist = new TH1F("UGSTClusHist", "UGST Cluster Usage", 15, -0.5, 14.5);
 	collegeClusterMap[college] = UGSTClusHist;
@@ -472,13 +473,13 @@ void PlotClusters() {
 	TH1F* OTHRClusHist = new TH1F("OTHRClusHist", "OTHR Cluster Usage", 15, -0.5, 14.5);
 	collegeClusterMap[college] = OTHRClusHist;
 	
-	gStyle->SetOptStat("e");
-	gStyle->SetHistMinimumZero(kTRUE);
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		clusterTree->GetEntry(jentry);
 		std::cout << aCluster->Cluster().size() << std::endl;
 		c1->cd(jentry + 1);
 		aCluster->gradeHist()->SetFillColor(38);
+		aCluster->gradeHist()->SetLabelSize(0.1);
+		aCluster->gradeHist()->SetLabelOffset(0.01);
 		aCluster->gradeHist()->DrawCopy();
 		aCluster->gradeHist()->Write();
 	
@@ -490,13 +491,13 @@ void PlotClusters() {
 		TString clusAyTitle = "Cluster " + clusNum + " Contiribution by AY";
 		TH1F* clusAyHist = new TH1F(clusAyName, clusAyTitle, 18, 0., 18.);
 		TString collegeHistName = "collegHist_" + clusNum;
-		TString collegeHistTitle = "Cluster " + clusNum + "Contributions by College";
-		TH1F* collegeHist = new TH1F(collegeHistName, collegeHistTitle, 14, 0., 14.);
+		TString collegeHistTitle = "Cluster " + clusNum + " Contributions by College";
+		TH1F* collegeHist = new TH1F(collegeHistName, collegeHistTitle, 12, 0., 12);
 		MyFunctions::CollegeLabels(collegeHist->GetXaxis());
 //		TPie* collegePie = new TPie(pieName, pieTitle);
 		MyFunctions::AyLabels(clusAyHist->GetXaxis());
 		for (auto section : aCluster->Cluster()) {
-			std::cout << "Section college = " << section.College() << std::endl;
+//			std::cout << "Section college = " << section.College() << std::endl;
 			clusAyHist->Fill(section.AcademicYear(), section.Hist()->Integral());
 			if (collegeHist->GetXaxis()->FindFixBin(section.College()) != -1) {
 				collegeHist->Fill(section.College(), section.Hist()->Integral());
