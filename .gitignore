@@ -3,8 +3,5 @@
 *.pcm
 *.d
 *.so
-EnglishCodes.*
-CourseRules.*
-Student*
 data
 LrnAnaDict.C
