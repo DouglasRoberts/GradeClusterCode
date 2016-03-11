@@ -1,11 +1,51 @@
 #include "MyFunctions.h"
 #include <sstream>
 #include <iomanip>
+#include <map>
 
-double MyFunctions::GradeToQuality(TString grade) {
+bool MyFunctions::ValidGrade(TString grade) {
+	return GradeToQuality(grade) > -0.5;
+}
+
+double MyFunctions::GradeToQuality(TString grade, int term) {
 	
 	double retVal = -1.;
 	
+//	static const int firstNewTerm = 201208;   // This is the actual term where plus/minus grades counted in GPA calc
+	static const int firstNewTerm = 180008;   // This disables using non-plus/minus grade quality points
+	
+	static std::map<TString, double> const gradesOld = {
+		{"F", 0.}, 
+		{"D-", 1.}, {"D", 1.}, {"D+", 1.},
+		{"C-", 2.}, {"C", 2.}, {"C+", 2.},
+		{"B-", 3.}, {"B", 3.}, {"B+", 3.},
+		{"A-", 4.}, {"A", 4.}, {"A+", 4.}};
+	static std::map<TString, double> const gradesNew = {
+		{"F", 0.}, 
+		{"D-", 0.7}, {"D", 1.0}, {"D+", 1.3},
+		{"C-", 1.7}, {"C", 2.0}, {"C+", 2.3},
+		{"B-", 2.7}, {"B", 3.0}, {"B+", 3.3},
+		{"A-", 3.7}, {"A", 4.0}, {"A+", 4.0}};
+		
+	if (term >= firstNewTerm) {
+		try {
+			return gradesNew.at(grade);
+		}
+		catch (const std::out_of_range& e)
+		{
+			return retVal;
+		}
+	}
+	else {
+		try {
+			return gradesOld.at(grade);
+		}
+		catch (const std::out_of_range& e) {
+			return retVal;
+		}
+	}
+			
+/*									
 	if (grade == "A+")
 		retVal = 4.0;
 	else if (grade == "A")
@@ -34,7 +74,9 @@ double MyFunctions::GradeToQuality(TString grade) {
 		retVal = 0.0;
 	
 	return retVal;
+*/
 }
+
 void MyFunctions::GradeLabels(TAxis* axis) {
 	axis->SetBinLabel(13, "A+");
 	axis->SetBinLabel(12, "A");

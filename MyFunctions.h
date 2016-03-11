@@ -12,7 +12,8 @@ namespace MyFunctions
 	TString academicYear(int termCode);
 	TString fiscalYear(int termCode);
 	
-	double GradeToQuality(TString grade);
+	double GradeToQuality(TString grade, int term = 202001);
+	bool ValidGrade(TString grade);
 	
 	void GradeLabels(TAxis* axis);
 	void CollegeLabels(TAxis* axis);

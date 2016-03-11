@@ -5,7 +5,7 @@ else
 endif
 
 
-MYCLASSES := SectionInfo
+MYCLASSES := SectionInfo Student
 MYCLASSES += GradeCluster MyFunctions
 
 MYHEADERS := $(addsuffix .h, $(MYCLASSES))
