@@ -7,7 +7,7 @@ ClassImp(Student)
 //
 void Student::Finalize() {
 	for (auto &enrollment : _enrollments) {
-		for (auto grade : _grades) {
+		for (auto &grade : _grades) {
 			if (grade.term == enrollment.term)
 				enrollment.grades.push_back(grade);
 		}
@@ -57,7 +57,7 @@ double Student::Gpa(int term) {
 		return 0.;
 }
 
-std::vector<Student::Grade> Student::TermGradeList(int term) {
+std::vector<Student::Grade> Student::TermLetterGradeList(int term) const {
 	std::vector<Student::Grade> retVal;
 	for (Grade const& grade : _grades) {
 		// Find valid posted grades corresponding to the passed term
@@ -107,6 +107,44 @@ double Student::AttemptedCredits(int term) {
 				
 	}
 	return attempted;
+}
+
+double Student::AllAttemptedCredits(int term) {
+	// This includes grades of S and P as valid
+	double attempted = 0.;
+	for (Grade const& grade : _grades) {
+		if (MyFunctions::ValidGradeAny(grade.grade)) {
+			if (term == 0)
+				attempted += grade.credits;
+			else if (term == grade.term)
+				attempted += grade.credits;
+		}
+				
+	}
+	return attempted;
+	
+}
+
+double Student::AvgAttemptedCredits() {
+	double retVal = 0.;
+	int nTerms = 0;
+	for (auto const& enrollment : _enrollments) {
+		// Only look at Fall and Spring terms
+		TString termName = MyFunctions::termName(enrollment.term);
+		if (termName == "Fall" || termName == "Spring") {
+			nTerms++;
+			// Count credits for all courses with grades posted
+			for (Student::Grade const& grade : enrollment.grades) {
+				if (MyFunctions::ValidGradeAny(grade.grade)) {
+					retVal += grade.credits;
+				}
+			}
+		}
+	}
+	if (nTerms > 0)
+		return retVal/nTerms;
+	else
+		return 0.;
 }
 
 double Student::DegreeCredits() {

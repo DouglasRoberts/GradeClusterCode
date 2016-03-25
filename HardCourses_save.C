@@ -13,14 +13,10 @@
 #include <TBenchmark.h>
 #include <TH1D.h>
 #include <TH2D.h>
-#include <THStack.h>
 #include <TProfile.h>
-#include <TF1.h>
-#include <TStyle.h>
 #include <vector>
 #include <map>
 #include <iostream>
-#include <random>
 
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
@@ -228,14 +224,6 @@ void CreateStudentObjects() {
 }
 
 void LookAtStudents(int iterationsMax = 10) {
-	
-	gStyle->SetErrorX(0);
-	
-	// Set up random number generator for future use
-//    std::random_device randomDevice;  // Use this for non-deterministic random seeding
-//    std::mt19937 randomGenerator(randomDevice());
-	std::mt19937 randomGenerator;   //Use default seed.  This is deterministic
-	
 	// Just a quick look at the data in the Students TTree
 	TFile* f = new TFile("Students.root");
 	TTree* studentTree = (TTree*)f->Get("Students");
@@ -266,65 +254,16 @@ void LookAtStudents(int iterationsMax = 10) {
 	enrollStatusHist->GetXaxis()->SetBinLabel(3, "R2");
 	enrollStatusHist->GetXaxis()->SetBinLabel(4, "R3");
 	enrollStatusHist->GetXaxis()->SetBinLabel(5, "R4");
-	TH1D* nfVsIterHist = new TH1D("nfVsIterHist", "NF Enrollment Code GPA Bias", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* r1VsIterHist = new TH1D("r1VsIterHist", "R1 Enrollment Code GPA Bias", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* r2VsIterHist = new TH1D("r2VsIterHist", "R2 Enrollment Code GPA Bias", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* r3VsIterHist = new TH1D("r3VsIterHist", "R3 Enrollment Code GPA Bias", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* r4VsIterHist = new TH1D("r4VsIterHist", "R4 Enrollment Code GPA Bias", iterationsMax, 0.5, iterationsMax + 0.5);
-	nfVsIterHist->SetLineColor(kBlue);
-	r1VsIterHist->SetLineColor(kRed);
-	r2VsIterHist->SetLineColor(kViolet);
-	r3VsIterHist->SetLineColor(kOrange);
-	r4VsIterHist->SetLineColor(kMagenta);
-	THStack* enrollVsIterStack = new THStack("enrollVsIterStack","");
-	enrollVsIterStack->Add(nfVsIterHist);
-	enrollVsIterStack->Add(r1VsIterHist);
-	enrollVsIterStack->Add(r2VsIterHist);
-	enrollVsIterStack->Add(r3VsIterHist);
-	enrollVsIterStack->Add(r4VsIterHist);
-	
-	TH1D* interceptHist = new TH1D("interceptHist", "Intercept From Load Correction", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* slopeHist = new TH1D("slopeHist", "Slope From Load Correction", iterationsMax, 0.5, iterationsMax + 0.5);
-	THStack* loadStack = new THStack("loadStack", "");
-	interceptHist->SetLineColor(kBlue);
-	slopeHist->SetLineColor(kRed);
-	loadStack->Add(interceptHist);
-	loadStack->Add(slopeHist);
 	
 	TH1D* allVsAttCredits = new TH1D("allVsAttCredits", "All credits - attemtped credits (used in GPA calc)", 15, 0., 15.);
 	TProfile* gpaPredictionVsAllAttCredits = new TProfile("gpaPredictionVsAllAttCredits", "Predicted GPA Residual vs. All Attempted Credits", 25, 10., 35.);
 	TH1D* relativeLoadHist = new TH1D("relativeLoadHist", "Relative Course Load in Credits", 50, -10., 10.);
 	TProfile* relativeLoadProf = new TProfile("relativeLoadProf", "Predicted GPA vs. Relative Course Load in Credits", 50, -10., 10.);
 	
-	TH1D* delGpaRawHist = new TH1D("delGpaRawHist", "GPA_{SEM} - GPA_{#bar{SEM}}, Raw", 100, -4., 4.);
-	TH1D* delGpaEnrollHist = new TH1D("delGpaEnrollHist", "GPA_{SEM} - GPA_{#bar{SEM}}, With Enroll Type Correction", 100, -4., 4.);
-	TH1D* delGpaLoadHist = new TH1D("delGpaLoadHist", "GPA_{SEM} - GPA_{#bar{SEM}}, With Course Load Correction", 100, -4., 4.);
-	TH1D* delGpaHardHist = new TH1D("delGpaHardHist", "GPA_{SEM} - GPA_{#bar{SEM}}, With Course Difficulty Correction", 100, -4., 4.);
-	TH1D* delGpaAllHist = new TH1D("delGpaAllHist", "GPA_{SEM} - GPA_{#bar{SEM}}, With All Corrections", 100, -4., 4.);
-	
-	TH1D* rmsRawHist = new TH1D("rmsRawHist", "RMS of Uncorrected #DeltaGPA", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* rmsEnrollHist = new TH1D("rmsEnrollHist", "RMS of Enroll Type Corrected #DeltaGPA", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* rmsLoadHist = new TH1D("rmsLoadHist", "RMS of Load Corrected #DeltaGPA", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* rmsHardHist = new TH1D("rmsHardHist", "RMS of Difficulty Corrected #DeltaGPA", iterationsMax, 0.5, iterationsMax + 0.5);
-	TH1D* rmsAllHist = new TH1D("rmsAllHist", "RMS of Fully Corrected #DeltaGPA", iterationsMax, 0.5, iterationsMax + 0.5);
-	rmsRawHist->SetLineColor(kBlue);
-	rmsEnrollHist->SetLineColor(kRed);
-	rmsLoadHist->SetLineColor(kViolet);
-	rmsHardHist->SetLineColor(kMagenta);
-	rmsAllHist->SetLineColor(kOrange);
-	THStack* rmsStack = new THStack("rmsStack", "");
-	rmsStack->Add(rmsRawHist);
-	rmsStack->Add(rmsEnrollHist);
-	rmsStack->Add(rmsLoadHist);
-	rmsStack->Add(rmsHardHist);
-	rmsStack->Add(rmsAllHist);
-	rmsStack->SetMinimum(0.38);
-	
-	TH1D* iterChi2 = new TH1D("iterChi2", "Chi^2 vs. Iteration Number", iterationsMax, 0.5, iterationsMax + 0.5);
+//	TH2D* courseCorrelation = new TH2D("courseCorrelation", "Matrix of courses taken simultaneously", 8814, 0., 8814., 8814, 0., 8814.);
+//	TH1D* courseCorrNorm = new TH1D("courseCorrNorm", "Normalization of courses taken simultaneously", 8814, 0., 8814.);
 	
 	std::map<TString, CourseDelta> emptyMap;
-	std::map<TString, CourseDelta> oldMap;
-	std::map<TString, CourseDelta> newMap;
 	std::map<TString, CourseDelta> hardCourses;
 	std::map<TString, CourseDelta> hardPrefixes;
 	
@@ -332,305 +271,53 @@ void LookAtStudents(int iterationsMax = 10) {
 	TBenchmark myBenchmark;
 	
 	myBenchmark.Start("HardCourses, Loop 1");
-	int iterations = 0;
-	double damping = 0.1;   // Damp changes per iteration to prevent ocsillations
-	std::map<TString, double> prevEnrollTypeCorrection = {{"NF", 0.}, {"R1", 0.}, {"R2", 0.}, {"R3", 0}, {"R4", 0.}};
-	std::map<TString, double> enrollTypeCorrection = prevEnrollTypeCorrection;
-	
-	double loadCorrIntercept = 0.;
-	double loadCorrSlope = 0.;
-	double loadCorrInterceptError = 0.;
-	double loadCorrSlopeError = 0.;
-	double prevLoadIntercept = 0.;
-	double prevLoadSlope = 0.;
-
-	TCanvas* cIter = new TCanvas("cIter", "Iteration Tracking", 1600, 1200);
-	cIter->Divide(1,4);
-	TCanvas* cIter2 = new TCanvas("cIter2", "Iteration Tracking", 1600, 1200);
-	cIter2->Divide(2,3);
-	
-	TF1* myLine = new TF1("myLine", "pol1");
-	myLine->SetParameters(0., 0.);
-	myLine->FixParameter(0, 0.); // Fix intercept to 0, otherwise we get coupling with the enrollment type corrections
-	do {
-		++iterations;
-		std::cout << "Starting iteration " << iterations << std::endl;
-		//Create a map from enroll_type to GPA correction based on previous iteration
-		for (int iBin = 1; iBin <= gpaPredictionVsStatus->GetNbinsX(); iBin++) {
-			TString label = gpaPredictionVsStatus->GetXaxis()->GetBinLabel(iBin);
-			// Get info from last iteration
-			double content = gpaPredictionVsStatus->GetBinContent(iBin);
-			double prevContent = prevEnrollTypeCorrection[label];
-			prevEnrollTypeCorrection[label] = enrollTypeCorrection[label];
-			// Damp this motion
-			content = damping*content + (1. - damping)*prevContent;
-			double error = gpaPredictionVsStatus->GetBinError(iBin);  // Errors on previous and current are totally correlated
-			enrollTypeCorrection[label] = content;
-			switch (iBin) {
-				case 1:
-				nfVsIterHist->SetBinContent(iterations, content);
-				nfVsIterHist->SetBinError(iterations, error);
-				break;
-				case 2:
-				r1VsIterHist->SetBinContent(iterations, content);
-				r1VsIterHist->SetBinError(iterations, error);
-				break;
-				case 3:
-				r2VsIterHist->SetBinContent(iterations, content);
-				r2VsIterHist->SetBinError(iterations, error);
-				break;
-				case 4:
-				r3VsIterHist->SetBinContent(iterations, content);
-				r3VsIterHist->SetBinError(iterations, error);
-				break;
-				case 5:
-				r4VsIterHist->SetBinContent(iterations, content);
-				r4VsIterHist->SetBinError(iterations, error);
-				break;
-				
-				default:
-				break;
-			}
-		}
-		
-		relativeLoadProf->Fit(myLine, "BQ0");
-		if (iterations > 1) {
-			double intercept = myLine->GetParameter(0);
-			double slope = myLine->GetParameter(1);
-			prevLoadIntercept = loadCorrIntercept;
-			prevLoadSlope = loadCorrSlope;
-			loadCorrIntercept = damping*intercept + (1. - damping)*loadCorrIntercept;
-			loadCorrSlope = damping*slope + (1. - damping)*loadCorrSlope;
-			loadCorrInterceptError = myLine->GetParError(0);
-			loadCorrSlopeError = myLine->GetParError(1);
-		}
-		interceptHist->SetBinContent(iterations, loadCorrIntercept);
-		interceptHist->SetBinError(iterations, loadCorrInterceptError);
-		slopeHist->SetBinContent(iterations, loadCorrSlope);
-		slopeHist->SetBinError(iterations, loadCorrSlopeError);
-		
-		// Update course delta map
-		oldMap = emptyMap;
-		for (auto& mapElement : oldMap) {
-			TString name = mapElement.second.name;
-			mapElement.second.name = newMap[name].name;
-			mapElement.second.nEntries = newMap[name].nEntries;
-			mapElement.second.deltaSum = damping*newMap[name].deltaSum + (1. - damping)*mapElement.second.deltaSum;
-			// What should I do with sum^2?
-			mapElement.second.deltaSum2 = newMap[name].deltaSum2;
-		}
-		newMap = emptyMap;
-		
-		// Now reset histograms for next iteration
-		gpaPredictionVsStatus->Reset();
-		relativeLoadProf->Reset();
-		gpaPredictionVsAllAttCredits->Reset();
-		delGpaRawHist->Reset();
-		delGpaEnrollHist->Reset();
-		delGpaLoadHist->Reset();
-		delGpaHardHist->Reset();
-		delGpaAllHist->Reset();
-				
-		// First, let's loop over everything and create both the enrollment status correction and the seed for the hard courses calculations
-		std::vector<int> courseToUseIndex(nentries);	
-		for (Long64_t jentry = 0; jentry < nentries; jentry++) {
-			studentTree->GetEntry(jentry);
-			student->Finalize();  // This regenerates the enrollment.grades stuff that doesn't persist
-			// Only use half the students for training
-			//		if (student->Id() % 2 != 0) continue;
-			for (auto const& enrollment : student->Enrollments()) {
-				// Only look at Fall and Spring Terms
-				int term = enrollment.term;
-				if (MyFunctions::termName(term) != "Fall" && MyFunctions::termName(term) != "Spring") continue;
-				// Only look at semesters with at least 12 attempted credits
-				double attemptedCredits = student->AttemptedCredits(term);
-				if (attemptedCredits < 12.) continue;
-
-				double allAttemptedCredits = student->AllAttemptedCredits(enrollment.term);
-				double avgAttemptedCredits = student->AvgAttemptedCredits();
-				double relativeLoad = allAttemptedCredits - avgAttemptedCredits;
-				
-				double delGpaRaw = student->Gpa(enrollment.term) - student->Gpa(-enrollment.term);
-				double enrollCorr = enrollTypeCorrection[enrollment.enrollType];
-				double loadCorr = loadCorrIntercept + loadCorrSlope*relativeLoad;
-				double hardCorr = 0.;
-				double gpaSemBarCorr = student->Gpa(-enrollment.term) + enrollCorr + loadCorr;
+	// First, let's loop over everything and create both the enrollment status correction and the seed for the hard courses calculations	
+	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
+		studentTree->GetEntry(jentry);
+		// Only use half the students for training
+//		if (student->Id() % 2 != 0) continue;
+		for (auto const& enrollment : student->Enrollments()) {
+			// Only look at Fall and Spring Terms
+			if (MyFunctions::termName(enrollment.term) != "Fall" && MyFunctions::termName(enrollment.term) != "Spring") continue;
+			// Only look at semesters with at least 12 attempted credits
+			double attemptedCredits = student->AttemptedCredits(enrollment.term);
+			if (attemptedCredits < 12.) continue;
 			
-				// Here we are going to calculate both the individual course deltas and the overall semester Delta for trackcing.
-				double degreeOfDifficulty = 0.;
-				double sigDegOfDiff = 0.;
-				double totalCredits = 0.;
-				double sumCrDeltas = 0.;
-				
-				auto termGrades = student->TermLetterGradeList(enrollment.term);  // Note that this will only pull grades in the F - A+ range
-				
-				// On first iteration, flag one randomly chosen course per semester to feed into the delta calculation
-				if (1 == iterations) {
-					std::uniform_int_distribution<> uniformInt(0, termGrades.size() - 1);
-					int useThisClass = uniformInt(randomGenerator);
-					courseToUseIndex[jentry] = useThisClass;
-				}
-				
-				int nDeltasAdded = 0;
-				for (Student::Grade const& grade : termGrades) {
-					// Make sure this is an F-A+ kind of grade
-//					if (!MyFunctions::ValidGrade(grade.grade)) continue;
-					totalCredits += grade.credits;
-					// Only look at courses 3 or more credits
-//					if (grade.credits < 2.99) continue;
-					// Some stuff to do only on first iteration...
-					auto thisIndex = &grade - &termGrades[0];
-					if (iterations == 1) {
-						if (courseToUseIndex[jentry] == thisIndex) emptyMap[grade.course].name = grade.course;
-						enrollStatusHist->Fill(enrollment.enrollType, 1.);
-						allVsAttCredits->Fill(allAttemptedCredits - attemptedCredits);
-						relativeLoadHist->Fill(relativeLoad);
-					}
-					double coeff = (1. - grade.credits/attemptedCredits);
-					if (coeff == 0.) {
-						coeff = 0.;  // Gotta love renormalization, lol
-					}
-					else {
-						coeff = 1./coeff;
-					}
-					// Get GPA for this semester, without this course. Is this right?  Prehaps using the course is ok?
-					double gpaSemNoCourse = student->SemesterGpaWithoutCourse(grade.term, grade.course);
-					double deltaSem = gpaSemNoCourse - gpaSemBarCorr;
-//					delGpa3->Fill(deltaSem);
-					double sumDelta = 0.;
-					double sumCrDelta = 0.;
-					for (Student::Grade const& grade_i : termGrades) {
-						if (grade_i.course == grade.course) continue;
-						if (!MyFunctions::ValidGrade(grade_i.grade)) continue;
-						auto search = oldMap.find(grade_i.course);
-						if (search != oldMap.end()) {
-//							std::cout << "About to add a delta = " << search->second.average() << std::endl;
-							sumDelta += search->second.average();
-							sumCrDelta += grade_i.credits*search->second.average();
-						}
-					}
-//					std::cout << "sumDelta = " << sumDelta << std::endl;
-					sumCrDeltas += grade.credits*sumDelta;
-					// Now calculate difficulty of this course, then add it to the map for this iteration.
-					double delta = coeff*(deltaSem - (sumDelta - sumCrDelta/attemptedCredits));
-					if (thisIndex == courseToUseIndex[jentry]) {
-						auto search = newMap.find(grade.course);
-						if (search != newMap.end()) {
-							search->second.AddDelta(delta);
-							nDeltasAdded++;
-						}
-					}
-				}
-				hardCorr = sumCrDeltas/totalCredits;
-//				std::cout << "nDeltasAdded = " << nDeltasAdded << std::endl;
-				
-//				std::cout << "hardCorr, sumCrDeltas = " << hardCorr << ", " << sumCrDeltas << std::endl;
-
-				// Fill plot with GPA prediction vs. enrollment status for later use
-				delGpaRawHist->Fill(delGpaRaw);
-				delGpaEnrollHist->Fill(delGpaRaw - enrollCorr);
-				delGpaLoadHist->Fill(delGpaRaw - loadCorr);
-				delGpaHardHist->Fill(delGpaRaw - hardCorr);
-				delGpaAllHist->Fill(delGpaRaw - loadCorr - enrollCorr - hardCorr);
-				
-				gpaPredictionVsStatus->Fill(enrollment.enrollType, delGpaRaw - loadCorr - hardCorr);
-				gpaPredictionVsAllAttCredits->Fill(allAttemptedCredits, delGpaRaw - enrollCorr - hardCorr);
-				relativeLoadProf->Fill(relativeLoad, delGpaRaw - enrollCorr);
+			// Loop over all courses and create an initial map with CourseDelta objects for each course.
+			for (auto const& grade : enrollment.grades) {
+				// Only look at courses 3 or more credits
+				if (grade.credits < 2.99) continue;
+				emptyMap[grade.course].name = grade.course;
+//				emptyMap[grade.course].credits = grade.credits;
+//				bool filled = false;
+//				for (auto const& grade2 : enrollment.grades) {
+//					if (grade2.credits < 2.99) continue;
+//					if (grade.course != grade2.course) {
+//						courseCorrelation->Fill(grade.course, grade2.course, 1.);
+//						filled = true;
+//					}
+//				}
+//				if (filled) courseCorrNorm->Fill(grade.course, 1.);
 			}
+			// Fill plot with GPA prediction vs. enrollment status for later use
+			double delGpa = student->Gpa(enrollment.term) - student->Gpa(-enrollment.term);
+			gpaPredictionVsStatus->Fill(enrollment.enrollType, delGpa);
+			enrollStatusHist->Fill(enrollment.enrollType, 1.);
 		}
-		
-		// Now compare old and new maps to see if they are still changing...
-		double sumChi2 = 0.;
-		int nPrinted = 0;
-		int nUsed = 0;
-		for (auto const& newEntry : newMap) {
-			auto const& newElement = newEntry.second;
-//			delEntries->Fill(newElement.nEntries);
-			if (newElement.nEntries >= newElement.minEntries)
-				nUsed++;
-			auto const& oldElement = oldMap[newElement.name];
-			double delta = newElement.average() - oldElement.average();
-			double errOnMean = newElement.errorOnMean();
-			if (newElement.nEntries > 0) {
-				double chi2 = (delta/errOnMean)*(delta/errOnMean);
-				sumChi2 += chi2;
-				if (chi2 > 200. && nPrinted < 0) {
-					nPrinted++;
-					std::cout << "In comparing new vs. old, delta, errOnMean, nEntries = " << delta << ", " << errOnMean << ", " << newElement.nEntries << std::endl;
-					std::cout << "chi2, sumChi2 = " << chi2 << ", " << sumChi2 << std::endl;
-				}
-			}
-		}
-		if (nUsed > 0) sumChi2 /= nUsed;
-		std::cout << "Comparision between new and old deltas = " << sumChi2 << std::endl;
-//		engl101->Fill(iterations, newMap.at("ENGL101").average());
-//		engl101->SetBinError(iterations+1, newMap.at("ENGL101").errorOnMean());
-//		math140->Fill(iterations, newMap.at("MATH140").average());
-//		math140->SetBinError(iterations+1, newMap.at("MATH140").errorOnMean());
-		iterChi2->Fill(iterations, sumChi2);
-		if (iterations == 0) {
-			std::cout << "Number of courses used = " << nUsed << std::endl;
-			std::cout << "MATH140 entries = " << newMap.at("MATH140").nEntries << std::endl;
-		}		
-		
-		
-		// Plot some stuff
-		rmsRawHist->SetBinContent(iterations, delGpaRawHist->GetStdDev());
-		rmsRawHist->SetBinError(iterations, delGpaRawHist->GetStdDevError());
-		rmsEnrollHist->SetBinContent(iterations, delGpaEnrollHist->GetStdDev());
-		rmsEnrollHist->SetBinError(iterations, delGpaEnrollHist->GetStdDevError());
-		rmsLoadHist->SetBinContent(iterations, delGpaLoadHist->GetStdDev());
-		rmsLoadHist->SetBinError(iterations, delGpaLoadHist->GetStdDevError());
-		rmsHardHist->SetBinContent(iterations, delGpaHardHist->GetStdDev());
-		rmsHardHist->SetBinError(iterations, delGpaHardHist->GetStdDevError());
-		rmsAllHist->SetBinContent(iterations, delGpaAllHist->GetStdDev());
-		rmsAllHist->SetBinError(iterations, delGpaAllHist->GetStdDevError());
-		
-		cIter->cd(1);
-		enrollVsIterStack->Draw("nostack E1P");
-		cIter->cd(1)->BuildLegend();
-		enrollVsIterStack->Draw("nostack L HIST SAME");
-		
-		cIter->cd(2);
-		loadStack->Draw("nostack E1P");
-		cIter->cd(2)->BuildLegend();
-		loadStack->Draw("nostack L HIST SAME");
-		
-		cIter->cd(3);
-		rmsStack->Draw("nostack E1P");
-		cIter->cd(3)->BuildLegend();
-		rmsStack->Draw("nostack L HIST SAME");
-		
-		cIter->cd(4);
-		iterChi2->DrawCopy("HIST");
-		
-		cIter->Modified();
-		cIter->Update();
-		
-		cIter2->cd(1);
-		delGpaRawHist->DrawCopy();
-		cIter2->cd(2);
-		delGpaEnrollHist->DrawCopy();
-		cIter2->cd(3);
-		delGpaLoadHist->DrawCopy();
-		cIter2->cd(4);
-		delGpaHardHist->DrawCopy();
-		cIter2->cd(5);
-		delGpaAllHist->DrawCopy();
-		
-		cIter2->Modified();
-		cIter2->Update();
-		
-		if (gSystem->ProcessEvents()) return;
-		
-	} while (iterations <= iterationsMax);
+	}
 	
 	std::cout << "Size of empty course map = " << emptyMap.size() << std::endl;
+	
+	//Create a map from enroll_type to GPA correction
+	std::map<TString, double> enrollTypeCorrection;
+	for (int iBin = 1; iBin <= gpaPredictionVsStatus->GetNbinsX(); iBin++) {
+		TString label = gpaPredictionVsStatus->GetXaxis()->GetBinLabel(iBin);
+		enrollTypeCorrection[label]= gpaPredictionVsStatus->GetBinContent(iBin);
+	}
 	
 	// Next, let's loop over everything and look at dependence on credit load, corrected for the enrollmentStatus effect (does order matter?)	
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		studentTree->GetEntry(jentry);
-		student->Finalize();
 		// Only use half the students for training
 //		if (student->Id() % 2 != 0) continue;
 		for (auto const& enrollment : student->Enrollments()) {
@@ -640,15 +327,15 @@ void LookAtStudents(int iterationsMax = 10) {
 			double attemptedCredits = student->AttemptedCredits(enrollment.term);
 			double allAttemptedCredits = student->AllAttemptedCredits(enrollment.term);
 			if (attemptedCredits < 12.) continue;
-//			allVsAttCredits->Fill(allAttemptedCredits - attemptedCredits);
+			allVsAttCredits->Fill(allAttemptedCredits - attemptedCredits);
 			
 			double delGpa = student->Gpa(enrollment.term) - student->Gpa(-enrollment.term) - enrollTypeCorrection[enrollment.enrollType];
 //			double delGpa = student->Gpa(enrollment.term) - student->Gpa(-enrollment.term);
 			gpaPredictionVsAllAttCredits->Fill(allAttemptedCredits, delGpa);
 			// Look at load relative to the student's average course load
-//			double relativeLoad = allAttemptedCredits - student->AvgAttemptedCredits();
-//			relativeLoadHist->Fill(relativeLoad);
-//			relativeLoadProf->Fill(relativeLoad, delGpa);
+			double relativeLoad = allAttemptedCredits - student->AvgAttemptedCredits();
+			relativeLoadHist->Fill(relativeLoad);
+			relativeLoadProf->Fill(relativeLoad, delGpa);
 		}
 	}
 	
@@ -711,14 +398,16 @@ void LookAtStudents(int iterationsMax = 10) {
 	TH1D* delGpa2 = new TH1D("delGpa2", "Full Semester GPA - Corrected, Unbiased Prediction", 100, -4., 4.);
 	TH1D* delGpa3 = new TH1D("delGpa3", "Semester GPA w/o Course - Corrected, Unbiased Prediction", 100, -4., 4.);
 	TH1D* delEntries = new TH1D("delEntries", "Entries in every course delta object", 100, 0., 10000.);
+	TH1D* iterChi2 = new TH1D("iterChi2", "Chi^2 vs. Iteration Number", iterationsMax, -0.5, iterationsMax - 0.5);
 	TH1D* engl101 = new TH1D("engl101", "Evolution of delta for ENGL101", iterationsMax, -0.5, iterationsMax - 0.5);
 	TH1D* math140 = new TH1D("math140", "Evolution of delta for MATH140", iterationsMax, -0.5, iterationsMax - 0.5);
 	
-//	std::map<TString, CourseDelta> oldMap = emptyMap;
-//	std::map<TString, CourseDelta> newMap = emptyMap;
+	std::map<TString, CourseDelta> oldMap = emptyMap;
+	std::map<TString, CourseDelta> newMap = emptyMap;
 	TCanvas* canvas2 = new TCanvas("canvas2", "Hard Courses Plots", 1200, 800);
 	canvas2->Divide(3,2);
 	
+	int iterations = 0;
 	double epsilon = 0.25;
 	
 	do {
@@ -739,7 +428,6 @@ void LookAtStudents(int iterationsMax = 10) {
 		delEntries->Reset();
 		for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 			studentTree->GetEntry(jentry);
-			student->Finalize();
 			if (student->Id() % 2 != 0) continue;
 		
 			// Loop over enrollments
@@ -759,7 +447,7 @@ void LookAtStudents(int iterationsMax = 10) {
 				delGpa1->Fill(gpaSem - gpaSemBar);
 				delGpa2->Fill(gpaSem - gpaSemBarCorr);
 
-				for (Student::Grade const& grade : enrollment.grades) {
+				for (auto const& grade : enrollment.grades) {
 					// Make sure this is an F-A+ kind of grade
 					if (!MyFunctions::ValidGrade(grade.grade)) continue;
 					double coeff = (1. - grade.credits/attemptedCredits);
@@ -779,7 +467,7 @@ void LookAtStudents(int iterationsMax = 10) {
 					delGpa3->Fill(deltaSem);
 					double sumDelta = 0.;
 					double sumCrDelta = 0.;
-					for (Student::Grade const& grade_i : enrollment.grades) {
+					for (auto const& grade_i : enrollment.grades) {
 						if (grade_i.course == grade.course) continue;
 						auto search = oldMap.find(grade_i.course);
 						if (search != oldMap.end()) {
@@ -861,7 +549,6 @@ void LookAtStudents(int iterationsMax = 10) {
 /*	
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		studentTree->GetEntry(jentry);
-		student->Finalize();
 		gpaHist->Fill(student->Gpa());
 		earnedHist->Fill(student->EarnedCredits());
 		attemptedHist->Fill(student->AttemptedCredits());
@@ -1022,22 +709,21 @@ void LookAtStudents(int iterationsMax = 10) {
 	//  Look at semester difficulty and compare that to predicted effect on GPA...
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		studentTree->GetEntry(jentry);
-		student->Finalize();
 		if (student->Id() % 2 == 0) continue;
 
 		for (Student::Enrollment const& enrollment : student->Enrollments()) {
 			int term = enrollment.term;
 			if (MyFunctions::termName(term) != "Fall" && MyFunctions::termName(term) != "Spring") continue;
 			if (student->AttemptedCredits(term) < 12.) continue; 
-			auto termGrades = student->TermLetterGradeList(enrollment.term);
+			std::vector<Student::Grade> termGrades = student->TermGradeList(enrollment.term);
 			double degreeOfDifficulty = 0.;
 			double sigDegOfDiff = 0.;
 			double totalCredits = 0.;
 			double sumCrDeltas = 0.;
-			for (Student::Grade const& grade_i : termGrades) {
+			for (auto const& grade_i : termGrades) {
 				totalCredits += grade_i.credits;
 				double sumDeltas = 0.;
-				for (Student::Grade const& grade_j : termGrades) {
+				for (auto const& grade_j : termGrades) {
 					if (grade_i.course != grade_j.course) {
 						auto search = hardCourses.find(grade_j.course);
 						if (search != hardCourses.end())

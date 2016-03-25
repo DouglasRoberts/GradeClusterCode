@@ -3,8 +3,9 @@
 
 #include <TObject.h>
 #include <TString.h>
+#include <functional>
+#include <iostream>
 #include <vector>
-#include <set>
 
 class Student : public TObject {
 	
@@ -18,6 +19,7 @@ public:
 		TString course;
 		float credits;
 		int term;
+		TString applicableCode;
 		inline bool operator< (const Grade& rhs) const {return term < rhs.term;}
 	};
 	
@@ -29,7 +31,7 @@ public:
 		float cumCredits;
 		float cumDegCredits;
 		TString enrollType;
-		std::vector<Grade> grades;  // This duplicates other grade list?
+		std::vector<std::reference_wrapper<Grade>> grades;  //! This duplicates other grade list?
 		inline bool operator< (const Enrollment& rhs) const {return term < rhs.term;}
 	};
 	
@@ -49,6 +51,8 @@ public:
 	double SemesterGpaWithoutCourse(int term, TString course);
 	double EarnedCredits();
 	double AttemptedCredits(int term = 0);
+	double AllAttemptedCredits(int term = 0);   // Include courses taken S/P as well as Regular grading as a measure of total work load
+	double AvgAttemptedCredits();               // This also include S/P grades
 	double DegreeCredits();
 	
 	int nDegrees() {return _degrees.size();}
@@ -65,7 +69,7 @@ public:
 	void AddDegree(Degree degree) {_degrees.push_back(degree);}
 	std::vector<Degree> Degrees() {return _degrees;}
 	
-	std::vector<Grade> TermGradeList(int term);
+	std::vector<Grade> TermLetterGradeList(int term) const;
 	
 private:
 	

@@ -14,6 +14,7 @@ namespace MyFunctions
 	
 	double GradeToQuality(TString grade, int term = 202001);
 	bool ValidGrade(TString grade);
+	bool ValidGradeAny(TString grade);  // Includes P and S grades as well as F-A+
 	
 	void GradeLabels(TAxis* axis);
 	void CollegeLabels(TAxis* axis);

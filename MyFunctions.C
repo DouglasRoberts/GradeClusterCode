@@ -7,6 +7,10 @@ bool MyFunctions::ValidGrade(TString grade) {
 	return GradeToQuality(grade) > -0.5;
 }
 
+bool MyFunctions::ValidGradeAny(TString grade) {
+	return (MyFunctions::ValidGrade(grade) || (grade == "S") || (grade == "P"));
+}
+
 double MyFunctions::GradeToQuality(TString grade, int term) {
 	
 	double retVal = -1.;
