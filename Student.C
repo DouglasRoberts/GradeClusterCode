@@ -1,5 +1,6 @@
 #include "Student.h"
 #include "MyFunctions.h"
+#include <cassert>
 #include <iostream>
 
 ClassImp(Student)
@@ -27,27 +28,69 @@ bool Student::ValidEnrollTypes() {
 				return false;
 	}
 	return true;
-} 
+}
 
-double Student::Gpa(int term) {
+double Student::ExpectedGpa(double pctRank) {
+	double sumCredits = 0.;
+	double sumQpCr = 0.;
+	for (Grade const& grade : _grades) {
+		// Is this a valid grade?
+		if (MyFunctions::ValidGrade(grade.grade)) {
+			// Only count courses that we can find on the normed course map?
+			auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+			if (thisCourse != MyFunctions::gradeNormMap.end()) {
+				double credits = grade.credits;
+				TH1D* cumDist = thisCourse->second.CumulativeDistribution();
+				assert(0 != cumDist);
+				int expectedBin = cumDist->FindFirstBinAbove(pctRank);
+				TString expectedGrade = cumDist->GetXaxis()->GetBinLabel(expectedBin);
+				sumCredits += credits;
+				sumQpCr += credits*MyFunctions::GradeToQuality(expectedGrade);
+			}
+		}
+	}
+	if (sumCredits > 0.)
+		return sumQpCr/sumCredits;
+	else
+		return 0.;
+}
+
+double Student::Gpa(int term, bool normed) {
 	
 	// Function calculates GPA from entire Grades list.  No attempt to deal with repeated courses is made.
 	double creditsAttempted = 0.;
 	double qualityPoints = 0.;
+	double alpha = 1.;
+	double beta = 0.;
 	for (Grade const& grade : _grades) {
 		// Is this a valid grade?
 		if (MyFunctions::ValidGrade(grade.grade)) {
+			if (normed) {
+				alpha = 1.; beta = 0.;  // Default values
+				auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
+				auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+				if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
+					double allAvg = allCourses->second.Average();
+					double allStdDev = allCourses->second.StdDev();
+					double thisAvg = thisCourse->second.Average();
+					double thisStdDev = thisCourse->second.StdDev();
+					if (thisStdDev > 0.) {
+						alpha = allStdDev/thisStdDev;
+						beta = allAvg - alpha*thisAvg;
+					}
+				}
+			}
 			if (term == 0) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);
 			}
 			else if (grade.term == term) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);				
+				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);				
 			}
 			else if (term < 0 && grade.term != -term) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);								
+				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);								
 			}
 		}
 	}
@@ -65,6 +108,41 @@ std::vector<Student::Grade> Student::TermLetterGradeList(int term) const {
 			retVal.push_back(grade);
 	}
 	return retVal;
+}
+
+double Student::UnNormedGpa(double normedPrediction, int term, TString courseToExclude) {
+	double creditsAttempted = 0.;
+	double qualityPoints = 0.;
+	double alpha = 1.;
+	double beta = 0.;
+	for (Grade const& grade : _grades) {
+		if (!MyFunctions::ValidGrade(grade.grade)) continue;
+		if (grade.term != term) continue;
+		if (grade.course == courseToExclude) continue;
+		auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
+		auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+		alpha = 1.; beta = 0.;
+		if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
+			double allAvg = allCourses->second.Average();
+			double allStdDev = allCourses->second.StdDev();
+			double thisAvg = thisCourse->second.Average();
+			double thisStdDev = thisCourse->second.StdDev();
+			if (thisStdDev > 0.) {
+				alpha = allStdDev/thisStdDev;
+				beta = allAvg - alpha*thisAvg;
+			}
+		}
+		
+		
+		creditsAttempted += grade.credits;
+		qualityPoints += grade.credits*(normedPrediction - beta)/alpha;
+	}
+	
+	if (creditsAttempted > 0)
+		return qualityPoints/creditsAttempted;
+	else
+		return 0.;
+	
 }
 
 double Student::SemesterGpaWithoutCourse(int term, TString course) {

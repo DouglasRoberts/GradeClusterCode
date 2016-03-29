@@ -40,6 +40,7 @@ namespace std {} using namespace std;
 // Header files passed as explicit arguments
 #include "SectionInfo.h"
 #include "Student.h"
+#include "CourseGradeNormer.h"
 #include "GradeCluster.h"
 #include "MyFunctions.h"
 
@@ -54,7 +55,7 @@ namespace MyFunctions {
       inline ::ROOT::TGenericClassInfo *GenerateInitInstance()
       {
          static ::ROOT::TGenericClassInfo 
-            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 8,
+            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 12,
                      ::ROOT::DefineBehavior((void*)0,(void*)0),
                      &MyFunctions_Dictionary, 0);
          return &instance;
@@ -723,7 +724,7 @@ namespace ROOT {
       vector<Student::Grade> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<Student::Grade>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<Student::Grade>", -2, "vector", 477,
+         instance("vector<Student::Grade>", -2, "vector", 457,
                   typeid(vector<Student::Grade>), DefineBehavior(ptr, ptr),
                   &vectorlEStudentcLcLGradegR_Dictionary, isa_proxy, 4,
                   sizeof(vector<Student::Grade>) );
@@ -786,7 +787,7 @@ namespace ROOT {
       vector<Student::Enrollment> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<Student::Enrollment>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<Student::Enrollment>", -2, "vector", 477,
+         instance("vector<Student::Enrollment>", -2, "vector", 457,
                   typeid(vector<Student::Enrollment>), DefineBehavior(ptr, ptr),
                   &vectorlEStudentcLcLEnrollmentgR_Dictionary, isa_proxy, 4,
                   sizeof(vector<Student::Enrollment>) );
@@ -849,7 +850,7 @@ namespace ROOT {
       vector<Student::Degree> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<Student::Degree>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<Student::Degree>", -2, "vector", 477,
+         instance("vector<Student::Degree>", -2, "vector", 457,
                   typeid(vector<Student::Degree>), DefineBehavior(ptr, ptr),
                   &vectorlEStudentcLcLDegreegR_Dictionary, isa_proxy, 0,
                   sizeof(vector<Student::Degree>) );
@@ -912,7 +913,7 @@ namespace ROOT {
       vector<SectionInfo> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<SectionInfo>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<SectionInfo>", -2, "vector", 477,
+         instance("vector<SectionInfo>", -2, "vector", 457,
                   typeid(vector<SectionInfo>), DefineBehavior(ptr, ptr),
                   &vectorlESectionInfogR_Dictionary, isa_proxy, 4,
                   sizeof(vector<SectionInfo>) );
@@ -975,7 +976,7 @@ namespace ROOT {
       vector<SectionInfo::GrdRecord> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<SectionInfo::GrdRecord>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<SectionInfo::GrdRecord>", -2, "vector", 477,
+         instance("vector<SectionInfo::GrdRecord>", -2, "vector", 457,
                   typeid(vector<SectionInfo::GrdRecord>), DefineBehavior(ptr, ptr),
                   &vectorlESectionInfocLcLGrdRecordgR_Dictionary, isa_proxy, 0,
                   sizeof(vector<SectionInfo::GrdRecord>) );
@@ -1023,11 +1024,75 @@ namespace ROOT {
    }
 } // end of namespace ROOT for class vector<SectionInfo::GrdRecord>
 
+namespace ROOT {
+   static TClass *maplETStringcOTStringgR_Dictionary();
+   static void maplETStringcOTStringgR_TClassManip(TClass*);
+   static void *new_maplETStringcOTStringgR(void *p = 0);
+   static void *newArray_maplETStringcOTStringgR(Long_t size, void *p);
+   static void delete_maplETStringcOTStringgR(void *p);
+   static void deleteArray_maplETStringcOTStringgR(void *p);
+   static void destruct_maplETStringcOTStringgR(void *p);
+
+   // Function generating the singleton type initializer
+   static TGenericClassInfo *GenerateInitInstanceLocal(const map<TString,TString>*)
+   {
+      map<TString,TString> *ptr = 0;
+      static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(map<TString,TString>));
+      static ::ROOT::TGenericClassInfo 
+         instance("map<TString,TString>", -2, "map", 830,
+                  typeid(map<TString,TString>), DefineBehavior(ptr, ptr),
+                  &maplETStringcOTStringgR_Dictionary, isa_proxy, 4,
+                  sizeof(map<TString,TString>) );
+      instance.SetNew(&new_maplETStringcOTStringgR);
+      instance.SetNewArray(&newArray_maplETStringcOTStringgR);
+      instance.SetDelete(&delete_maplETStringcOTStringgR);
+      instance.SetDeleteArray(&deleteArray_maplETStringcOTStringgR);
+      instance.SetDestructor(&destruct_maplETStringcOTStringgR);
+      instance.AdoptCollectionProxyInfo(TCollectionProxyInfo::Generate(TCollectionProxyInfo::MapInsert< map<TString,TString> >()));
+      return &instance;
+   }
+   // Static variable to force the class initialization
+   static ::ROOT::TGenericClassInfo *_R__UNIQUE_(Init) = GenerateInitInstanceLocal((const map<TString,TString>*)0x0); R__UseDummy(_R__UNIQUE_(Init));
+
+   // Dictionary for non-ClassDef classes
+   static TClass *maplETStringcOTStringgR_Dictionary() {
+      TClass* theClass =::ROOT::GenerateInitInstanceLocal((const map<TString,TString>*)0x0)->GetClass();
+      maplETStringcOTStringgR_TClassManip(theClass);
+   return theClass;
+   }
+
+   static void maplETStringcOTStringgR_TClassManip(TClass* ){
+   }
+
+} // end of namespace ROOT
+
+namespace ROOT {
+   // Wrappers around operator new
+   static void *new_maplETStringcOTStringgR(void *p) {
+      return  p ? ::new((::ROOT::TOperatorNewHelper*)p) map<TString,TString> : new map<TString,TString>;
+   }
+   static void *newArray_maplETStringcOTStringgR(Long_t nElements, void *p) {
+      return p ? ::new((::ROOT::TOperatorNewHelper*)p) map<TString,TString>[nElements] : new map<TString,TString>[nElements];
+   }
+   // Wrapper around operator delete
+   static void delete_maplETStringcOTStringgR(void *p) {
+      delete ((map<TString,TString>*)p);
+   }
+   static void deleteArray_maplETStringcOTStringgR(void *p) {
+      delete [] ((map<TString,TString>*)p);
+   }
+   static void destruct_maplETStringcOTStringgR(void *p) {
+      typedef map<TString,TString> current_t;
+      ((current_t*)p)->~current_t();
+   }
+} // end of namespace ROOT for class map<TString,TString>
+
 namespace {
   void TriggerDictionaryInitialization_LrnAnaDict_Impl() {
     static const char* headers[] = {
 "SectionInfo.h",
 "Student.h",
+"CourseGradeNormer.h",
 "GradeCluster.h",
 "MyFunctions.h",
 0
@@ -1044,8 +1109,13 @@ R"DICTFWDDCLS(
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 extern int __Cling_Autoloading_Map;
 class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  SectionInfo;
-class __attribute__((annotate("$clingAutoload$Student.h")))  Student;
+class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  Student;
 class __attribute__((annotate("$clingAutoload$GradeCluster.h")))  GradeCluster;
+class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  TString;
+namespace std{inline namespace __1{template <class _Tp> struct __attribute__((annotate("$clingAutoload$string")))  less;
+}}
+namespace std{inline namespace __1{template <class _T1, class _T2> struct __attribute__((annotate("$clingAutoload$string")))  pair;
+}}
 namespace std{inline namespace __1{template <class _Tp> class __attribute__((annotate("$clingAutoload$string")))  allocator;
 }}
 )DICTFWDDCLS";
@@ -1058,6 +1128,7 @@ namespace std{inline namespace __1{template <class _Tp> class __attribute__((ann
 #define _BACKWARD_BACKWARD_WARNING_H
 #include "SectionInfo.h"
 #include "Student.h"
+#include "CourseGradeNormer.h"
 #include "GradeCluster.h"
 #include "MyFunctions.h"
 

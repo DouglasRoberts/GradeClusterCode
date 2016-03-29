@@ -3,6 +3,10 @@
 #include <iomanip>
 #include <map>
 
+namespace MyFunctions {
+ std::map<TString, CourseGradeNormer> gradeNormMap;
+};
+
 bool MyFunctions::ValidGrade(TString grade) {
 	return GradeToQuality(grade) > -0.5;
 }
@@ -18,6 +22,8 @@ double MyFunctions::GradeToQuality(TString grade, int term) {
 //	static const int firstNewTerm = 201208;   // This is the actual term where plus/minus grades counted in GPA calc
 	static const int firstNewTerm = 180008;   // This disables using non-plus/minus grade quality points
 	
+	
+	// NOTE: I've modified this to count A+ as 4.3 !!!!!!!!  Campus actually uses A+ = 4.0
 	static std::map<TString, double> const gradesOld = {
 		{"F", 0.}, 
 		{"D-", 1.}, {"D", 1.}, {"D+", 1.},
@@ -29,7 +35,7 @@ double MyFunctions::GradeToQuality(TString grade, int term) {
 		{"D-", 0.7}, {"D", 1.0}, {"D+", 1.3},
 		{"C-", 1.7}, {"C", 2.0}, {"C+", 2.3},
 		{"B-", 2.7}, {"B", 3.0}, {"B+", 3.3},
-		{"A-", 3.7}, {"A", 4.0}, {"A+", 4.0}};
+		{"A-", 3.7}, {"A", 4.0}, {"A+", 4.3}};
 		
 	if (term >= firstNewTerm) {
 		try {
@@ -48,37 +54,6 @@ double MyFunctions::GradeToQuality(TString grade, int term) {
 			return retVal;
 		}
 	}
-			
-/*									
-	if (grade == "A+")
-		retVal = 4.0;
-	else if (grade == "A")
-		retVal = 4.0;
-	else if (grade == "A-")
-		retVal = 3.7;
-	else if (grade == "B+")
-		retVal = 3.3;
-	else if (grade == "B")
-		retVal = 3.0;
-	else if (grade == "B-")
-		retVal = 2.7;
-	else if (grade == "C+")
-		retVal = 2.3;
-	else if (grade == "C")
-		retVal = 2.0;
-	else if (grade == "C-")
-		retVal = 1.7;
-	else if (grade == "D+")
-		retVal = 1.3;
-	else if (grade == "D")
-		retVal = 1.0;
-	else if (grade == "D-")
-		retVal = 0.7;
-	else if (grade == "F")
-		retVal = 0.0;
-	
-	return retVal;
-*/
 }
 
 void MyFunctions::GradeLabels(TAxis* axis) {

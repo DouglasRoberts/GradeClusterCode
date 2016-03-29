@@ -47,7 +47,10 @@ public:
 	int Id() {return _id;}
 	int FirstTerm() {return _firstTerm;}
 	// For Gpa, if term == 0, use all terms.  If term > 0, use only that term.  If term < 0, exclude that term.
-	double Gpa(int term = 0);
+	double Gpa(int term = 0, bool normed = false);
+	double NormedGpa(int term = 0) {return Gpa(term, true);}
+	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "");
+	double ExpectedGpa(double pctRank);  // Returns a student's expected GPA based on their overall percent rank.
 	double SemesterGpaWithoutCourse(int term, TString course);
 	double EarnedCredits();
 	double AttemptedCredits(int term = 0);

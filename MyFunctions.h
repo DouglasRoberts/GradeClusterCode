@@ -1,9 +1,13 @@
 #ifndef MYFUNCTIONS_H
 #define MYFUNCTIONS_H value
 
-#include <TString.h>
-#include <TH1.h>
+#include "CourseGradeNormer.h"
+#include "Student.h"
 #include <TAxis.h>
+#include <TGraph.h>
+#include <TH1.h>
+#include <TString.h>
+#include <map>
 
 namespace MyFunctions
 {
@@ -19,5 +23,9 @@ namespace MyFunctions
 	void GradeLabels(TAxis* axis);
 	void CollegeLabels(TAxis* axis);
 	void AyLabels(TAxis* axis);
+		
+	extern std::map<TString, CourseGradeNormer> gradeNormMap;
 }
+
+
 #endif
