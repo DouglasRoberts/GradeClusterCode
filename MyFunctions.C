@@ -1,4 +1,7 @@
 #include "MyFunctions.h"
+#include "Student.h"
+#include <TFile.h>
+#include <TTree.h>
 #include <sstream>
 #include <iomanip>
 #include <map>
@@ -6,6 +9,33 @@
 namespace MyFunctions {
  std::map<TString, CourseGradeNormer> gradeNormMap;
 };
+
+void MyFunctions::BuildGradeNormMap() {
+	// This function build the gradeNormMap if it isn't already filled
+	if (gradeNormMap.size() > 0) return;  // Already filled
+	
+	// This is build from the Students root file.  Maybe this should be from a course file instead?
+	TFile* f = new TFile("Students.root");
+	TTree* studentTree = (TTree*)f->Get("Students");
+	Student* student = 0;
+	studentTree->SetBranchAddress("student", &student);
+	
+	Long64_t nentries = studentTree->GetEntriesFast();
+	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
+		studentTree->GetEntry(jentry);
+		//Loop over all terms for this student and accumulate grade distribution info
+		for (auto const& grade : student->Grades()) {
+			// Only look at Fall and Spring Terms
+			int term = grade.term;
+			if (!regularSemester(term)) continue;
+			if (!ValidGrade(grade.grade)) continue;
+			MyFunctions::gradeNormMap[grade.course].AddGrade(grade.grade);  // Will automatically create entry in map if it doesn't exist
+			MyFunctions::gradeNormMap["AllCourses"].AddGrade(grade.grade);
+		}			
+	}
+	
+	f->Close();
+}
 
 bool MyFunctions::ValidGrade(TString grade) {
 	return GradeToQuality(grade) > -0.5;
@@ -140,6 +170,10 @@ TString MyFunctions::termName(int termCode) {
 		break;
 	}
 	return retVal;
+}
+
+bool MyFunctions::regularSemester(int termCode) {
+	return (termName(termCode) == "Fall" || termName(termCode) == "Spring");
 }
 
 int MyFunctions::termYear(int termCode) {

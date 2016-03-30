@@ -55,7 +55,7 @@ namespace MyFunctions {
       inline ::ROOT::TGenericClassInfo *GenerateInitInstance()
       {
          static ::ROOT::TGenericClassInfo 
-            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 12,
+            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 9,
                      ::ROOT::DefineBehavior((void*)0,(void*)0),
                      &MyFunctions_Dictionary, 0);
          return &instance;
@@ -1109,7 +1109,7 @@ R"DICTFWDDCLS(
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 extern int __Cling_Autoloading_Map;
 class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  SectionInfo;
-class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  Student;
+class __attribute__((annotate("$clingAutoload$Student.h")))  Student;
 class __attribute__((annotate("$clingAutoload$GradeCluster.h")))  GradeCluster;
 class __attribute__((annotate("$clingAutoload$SectionInfo.h")))  TString;
 namespace std{inline namespace __1{template <class _Tp> struct __attribute__((annotate("$clingAutoload$string")))  less;

@@ -65,10 +65,12 @@ TGraph* CourseGradeNormer::CumulativeGraph() {
 			yVals[i] = cumulativeGradeDistribution->GetBinContent(i+1);
 		}
 		cumulativeGraph = new TGraph(13, xVals, yVals);
+		cumulativeGraph->SetTitle("Cumulative Grade Distribution;Grade Quality Points;Percentile");
 		cumulativeGraph->SetMarkerSize(1.);
 		cumulativeGraph->SetMarkerStyle(20);
 		cumulativeGraph->SetMarkerColor(kBlue);
 		cumulativeGraphInverse = new TGraph(13, yVals, xVals);
+		cumulativeGraphInverse->SetTitle("Inverse Cumulative Grade Distribution;Percentile;Grade Quality Points");
 		cumulativeGraphInverse->SetMarkerSize(1.);
 		cumulativeGraphInverse->SetMarkerStyle(20);
 		cumulativeGraphInverse->SetMarkerColor(kBlue);

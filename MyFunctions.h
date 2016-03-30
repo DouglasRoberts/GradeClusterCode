@@ -2,16 +2,14 @@
 #define MYFUNCTIONS_H value
 
 #include "CourseGradeNormer.h"
-#include "Student.h"
 #include <TAxis.h>
-#include <TGraph.h>
-#include <TH1.h>
 #include <TString.h>
 #include <map>
 
 namespace MyFunctions
 {
 	TString termName(int termCode);
+	bool regularSemester(int termCode);
 	int termYear(int termCode);
 	TString academicYear(int termCode);
 	TString fiscalYear(int termCode);
@@ -23,6 +21,8 @@ namespace MyFunctions
 	void GradeLabels(TAxis* axis);
 	void CollegeLabels(TAxis* axis);
 	void AyLabels(TAxis* axis);
+	
+	void BuildGradeNormMap();
 		
 	extern std::map<TString, CourseGradeNormer> gradeNormMap;
 }

@@ -44,33 +44,37 @@ public:
 	
 	
 	void Finalize();  // This just puts copies of the grade items into their respective Enrollment items
-	int Id() {return _id;}
-	int FirstTerm() {return _firstTerm;}
+	int Id() const {return _id;}
+	int FirstTerm() const {return _firstTerm;}
 	// For Gpa, if term == 0, use all terms.  If term > 0, use only that term.  If term < 0, exclude that term.
-	double Gpa(int term = 0, bool normed = false);
-	double NormedGpa(int term = 0) {return Gpa(term, true);}
-	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "");
-	double ExpectedGpa(double pctRank);  // Returns a student's expected GPA based on their overall percent rank.
-	double SemesterGpaWithoutCourse(int term, TString course);
-	double EarnedCredits();
-	double AttemptedCredits(int term = 0);
-	double AllAttemptedCredits(int term = 0);   // Include courses taken S/P as well as Regular grading as a measure of total work load
-	double AvgAttemptedCredits();               // This also include S/P grades
-	double DegreeCredits();
+	double Gpa(int term = 0, bool normed = false, const Student::Grade* gradeToExclude = 0) const;
+	double NormedGpa(int term = 0) const {return Gpa(term, true);}
+	double NormedGpaPrediction(int term) const;
+	double NormedCoursePrediction(const Student::Grade* gradeToExclude) const;  // Single course prediction, in quality points
+	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "") const;
+	double ExpectedGpa(double pctRank) const;  // Returns a student's expected GPA based on their overall percent rank.
+	double SemesterGpaWithoutCourse(int term, TString course) const;
+	double CumGpaWithoutCourse(int term, TString course) const;   // Need to include term as argument in case course was repeated.
+	double EarnedCredits() const;
+	double AttemptedCredits(int term = 0) const;
+	double AttemptedCredits(const Enrollment& enrollment) const;
+	double AllAttemptedCredits(int term = 0) const;   // Include courses taken S/P as well as Regular grading as a measure of total work load
+	double AvgAttemptedCredits() const;               // This also include S/P grades
+	double DegreeCredits() const;
 	
-	int nDegrees() {return _degrees.size();}
+	int nDegrees() const {return _degrees.size();}
 	
-	bool ValidEnrollTypes();
-	TString EnrollmentType(int term);
+	bool ValidEnrollTypes() const;
+	TString EnrollmentType(int term) const;
 	
 	void AddGrade(Grade grade) {_grades.push_back(grade);}
-	std::vector<Grade> Grades() {return _grades;}
+	std::vector<Grade> Grades() const {return _grades;}
 	
 	void AddEnrollment(Enrollment enrollment) {_enrollments.push_back(enrollment);}
-	std::vector<Enrollment> Enrollments() {return _enrollments;}
+	std::vector<Enrollment> Enrollments() const {return _enrollments;}
 	
 	void AddDegree(Degree degree) {_degrees.push_back(degree);}
-	std::vector<Degree> Degrees() {return _degrees;}
+	std::vector<Degree> Degrees() const {return _degrees;}
 	
 	std::vector<Grade> TermLetterGradeList(int term) const;
 	

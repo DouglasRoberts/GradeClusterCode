@@ -264,6 +264,8 @@ void CreateStudentObjects() {
 
 void GradeNorming() {
 	
+	// Note: this funtionality has been moved to MyFunctions::BuildGradeNormMap.
+	
 	TFile* f = new TFile("Students.root");
 	TTree* studentTree = (TTree*)f->Get("Students");
 	Student* student = 0;
@@ -273,7 +275,9 @@ void GradeNorming() {
 	TH1D* avgQuality = new TH1D("avgQuality", "Averge Grade Quality Point", 100, 0., 4.5);
 	TH1D* stdDevQuality = new TH1D("stDevQuality", "StdDev of Grade Quality", 100, 0., 2.);
 	
+	MyFunctions::BuildGradeNormMap();
 	
+	/*
 	Long64_t nentries = studentTree->GetEntriesFast();
 	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
 		studentTree->GetEntry(jentry);
@@ -295,7 +299,7 @@ void GradeNorming() {
 		}
 		
 	}
-		
+	*/	
 	for (auto const& entry : MyFunctions::gradeNormMap) {
 		if (entry.first == "AllCourses") continue;
 		avgQuality->Fill(entry.second.Average());

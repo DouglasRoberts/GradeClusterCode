@@ -16,7 +16,7 @@ void Student::Finalize() {
 	return;
 } 
 
-bool Student::ValidEnrollTypes() {
+bool Student::ValidEnrollTypes() const {
 
 	// Limit this to new freshman who continuously return without changing status somehow.
 	for (Enrollment enrollment : _enrollments) {
@@ -30,7 +30,7 @@ bool Student::ValidEnrollTypes() {
 	return true;
 }
 
-double Student::ExpectedGpa(double pctRank) {
+double Student::ExpectedGpa(double pctRank) const {
 	double sumCredits = 0.;
 	double sumQpCr = 0.;
 	for (Grade const& grade : _grades) {
@@ -55,7 +55,14 @@ double Student::ExpectedGpa(double pctRank) {
 		return 0.;
 }
 
-double Student::Gpa(int term, bool normed) {
+double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude) const {
+	
+	// This will calculate a student's gpa with various options:
+	//		term = 0, => all terms
+	//		term > 0, => only that term
+	//		term < 0, => exclude that term
+	//		bool normed controls whether or not course normalization takes place.  If true, returned value is in "normed" gpa space (beware!)
+	//		gradeToExclude can exclude a single course from calculation.
 	
 	// Function calculates GPA from entire Grades list.  No attempt to deal with repeated courses is made.
 	double creditsAttempted = 0.;
@@ -63,6 +70,7 @@ double Student::Gpa(int term, bool normed) {
 	double alpha = 1.;
 	double beta = 0.;
 	for (Grade const& grade : _grades) {
+		if (gradeToExclude != 0 && grade.course == gradeToExclude->course && grade.term == gradeToExclude->term) continue;
 		// Is this a valid grade?
 		if (MyFunctions::ValidGrade(grade.grade)) {
 			if (normed) {
@@ -110,7 +118,30 @@ std::vector<Student::Grade> Student::TermLetterGradeList(int term) const {
 	return retVal;
 }
 
-double Student::UnNormedGpa(double normedPrediction, int term, TString courseToExclude) {
+double Student::NormedGpaPrediction(int term) const {
+	return UnNormedGpa(NormedGpa(-term), term);
+}
+
+double Student::NormedCoursePrediction(const Student::Grade* gradeToExclude) const {
+	assert(MyFunctions::ValidGrade(gradeToExclude->grade));
+	
+	double primedPrediction = Gpa(0, true, gradeToExclude);  // GPA for all courses except this one, in "normed" gpa space
+	// Now, un-norm this prediction for this course
+	double alpha = 1.;
+	double beta = 0.;
+	auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
+	auto thisCourse = MyFunctions::gradeNormMap.find(gradeToExclude->course);
+	if (thisCourse != MyFunctions::gradeNormMap.end() && allCourses != MyFunctions::gradeNormMap.end()) {
+		if (thisCourse->second.StdDev() > 0.) {
+			alpha = allCourses->second.StdDev()/thisCourse->second.StdDev();
+			beta = allCourses->second.Average() - alpha*thisCourse->second.Average();
+		}
+	}
+	std::cout << "Aplha, beta = " << alpha << ", " << beta << std::endl;
+	return (primedPrediction - beta)/alpha;
+}
+
+double Student::UnNormedGpa(double normedPrediction, int term, TString courseToExclude) const {
 	double creditsAttempted = 0.;
 	double qualityPoints = 0.;
 	double alpha = 1.;
@@ -133,7 +164,6 @@ double Student::UnNormedGpa(double normedPrediction, int term, TString courseToE
 			}
 		}
 		
-		
 		creditsAttempted += grade.credits;
 		qualityPoints += grade.credits*(normedPrediction - beta)/alpha;
 	}
@@ -145,7 +175,7 @@ double Student::UnNormedGpa(double normedPrediction, int term, TString courseToE
 	
 }
 
-double Student::SemesterGpaWithoutCourse(int term, TString course) {
+double Student::SemesterGpaWithoutCourse(int term, TString course) const {
 	double creditsAttempted = 0.;
 	double qualityPoints = 0.;
 	for (Grade const& grade : _grades) {
@@ -163,7 +193,22 @@ double Student::SemesterGpaWithoutCourse(int term, TString course) {
 		return 0.;
 }
 
-double Student::EarnedCredits() {
+double Student::CumGpaWithoutCourse(int term, TString course) const {
+	double creditsAttempted = 0.;
+	double qualityPoints = 0.;
+	for (auto const& grade : _grades) {
+		if (!MyFunctions::ValidGrade(grade.grade)) continue;
+		if (grade.course == course && grade.term == term) continue;
+		creditsAttempted += grade.credits;
+		qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+	}
+	if (creditsAttempted > 0.)
+		return qualityPoints/creditsAttempted;
+	else
+		return 0.;
+}
+
+double Student::EarnedCredits() const {
 	// This is currently a little bogus.  Grades of "P" or "S" would count as earned
 	double earned = 0.;
 	for (Grade const& grade : _grades) {
@@ -173,7 +218,7 @@ double Student::EarnedCredits() {
 	return earned;
 }
 
-double Student::AttemptedCredits(int term) {
+double Student::AttemptedCredits(int term) const {
 	double attempted = 0.;
 	for (Grade const& grade : _grades) {
 		if (MyFunctions::ValidGrade(grade.grade)) {
@@ -187,7 +232,16 @@ double Student::AttemptedCredits(int term) {
 	return attempted;
 }
 
-double Student::AllAttemptedCredits(int term) {
+double Student::AttemptedCredits(const Enrollment& enrollment) const {
+	double attempted = 0.;
+	for (Grade const& grade : enrollment.grades) {
+		if (MyFunctions::ValidGrade(grade.grade))
+			attempted += grade.credits;
+	}
+	return attempted;
+}
+
+double Student::AllAttemptedCredits(int term) const {
 	// This includes grades of S and P as valid
 	double attempted = 0.;
 	for (Grade const& grade : _grades) {
@@ -203,7 +257,7 @@ double Student::AllAttemptedCredits(int term) {
 	
 }
 
-double Student::AvgAttemptedCredits() {
+double Student::AvgAttemptedCredits() const {
 	double retVal = 0.;
 	int nTerms = 0;
 	for (auto const& enrollment : _enrollments) {
@@ -225,7 +279,7 @@ double Student::AvgAttemptedCredits() {
 		return 0.;
 }
 
-double Student::DegreeCredits() {
+double Student::DegreeCredits() const {
 	double crMax = 0.;
 	for (Enrollment const& enrollment : _enrollments) {
 		if (enrollment.cumDegCredits > crMax) crMax = enrollment.cumDegCredits;
@@ -233,7 +287,7 @@ double Student::DegreeCredits() {
 	return crMax;
 }
 
-TString Student::EnrollmentType(int term) {
+TString Student::EnrollmentType(int term) const {
 	for (Enrollment const& enrollment : _enrollments) {
 		if (enrollment.term == term) return enrollment.enrollType;
 	}
