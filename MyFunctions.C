@@ -1,7 +1,9 @@
 #include "MyFunctions.h"
 #include "Student.h"
 #include <TFile.h>
+#include <TGraph.h>
 #include <TTree.h>
+#include <cassert>
 #include <sstream>
 #include <iomanip>
 #include <map>
@@ -9,6 +11,22 @@
 namespace MyFunctions {
  std::map<TString, CourseGradeNormer> gradeNormMap;
 };
+
+double MyFunctions::EvalCdf(TGraph* cdf, double x) {
+	// Find first point greater or equal to x, then return y of previous point
+	double* X = cdf->GetX();
+	double* Y = cdf->GetY();
+	for (int i = 0; i < cdf->GetN(); ++i) {
+		if (X[i] >= x)  { 
+			if (i > 0)
+				return Y[i-1];
+			else 
+				assert(0);
+		}
+	}
+	// Should never get here!
+	assert(0);
+}
 
 void MyFunctions::BuildGradeNormMap() {
 	// This function build the gradeNormMap if it isn't already filled

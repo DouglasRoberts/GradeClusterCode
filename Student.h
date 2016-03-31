@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+class TGraph;
+
 class Student : public TObject {
 	
 public:
@@ -48,6 +50,7 @@ public:
 	int FirstTerm() const {return _firstTerm;}
 	// For Gpa, if term == 0, use all terms.  If term > 0, use only that term.  If term < 0, exclude that term.
 	double Gpa(int term = 0, bool normed = false, const Student::Grade* gradeToExclude = 0) const;
+	double Gpa(const std::vector<Student::Grade> grades) const;
 	double NormedGpa(int term = 0) const {return Gpa(term, true);}
 	double NormedGpaPrediction(int term) const;
 	double NormedCoursePrediction(const Student::Grade* gradeToExclude) const;  // Single course prediction, in quality points
@@ -61,6 +64,12 @@ public:
 	double AllAttemptedCredits(int term = 0) const;   // Include courses taken S/P as well as Regular grading as a measure of total work load
 	double AvgAttemptedCredits() const;               // This also include S/P grades
 	double DegreeCredits() const;
+	
+	TGraph* CombinedCdf(const std::vector<Student::Grade> grades, bool inverse = false, const Student::Grade* gradeToExclude = 0) const;
+	TGraph* CombinedCdf() const {return CombinedCdf(_grades);}
+	TGraph* CombinedCdfWithoutCourse(const Student::Grade* grade) {return CombinedCdf(_grades, false, grade);}
+	TGraph* CombinedCdfInv(const std::vector<Student::Grade> grades) const {return CombinedCdf(grades, true);}
+	TGraph* CombinedCdfInv() const {return CombinedCdf(_grades, true);}
 	
 	int nDegrees() const {return _degrees.size();}
 	

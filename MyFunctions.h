@@ -6,6 +6,8 @@
 #include <TString.h>
 #include <map>
 
+class TGraph;
+
 namespace MyFunctions
 {
 	TString termName(int termCode);
@@ -23,6 +25,8 @@ namespace MyFunctions
 	void AyLabels(TAxis* axis);
 	
 	void BuildGradeNormMap();
+	
+	double EvalCdf(TGraph* cdf, double x);
 		
 	extern std::map<TString, CourseGradeNormer> gradeNormMap;
 }

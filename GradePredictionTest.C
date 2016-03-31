@@ -5,11 +5,14 @@
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1D.h>
+#include <TLine.h>
+#include <TMarker.h>
+#include <TSystem.h>
 #include <TTree.h>
 // Other includes
 #include <iostream>
 
-void GradePredictionTest() {
+void GradePredictionTest(bool scan = false) {
 	// This macro just tests various ways of predicting a student's GPA in a semester.
 	
 	std::cout << "About to build GradeNormMap..." << std::endl;
@@ -27,18 +30,37 @@ void GradePredictionTest() {
 	TH1D* hDeltaGpaBiased = new TH1D("hDeltaGpaBiase", "Biased, Raw #DeltaGPA", 100, -4., 4.);
 	TH1D* hDeltaGpaRaw = new TH1D("hDeltaGpaRaw", "Unbiased, Raw #DeltaGPA", 100, -4., 4.);
 	TH1D* hDeltaGpaNormed = new TH1D("hDeltaGpaNormed", "Course (Mean, #sigma) based grade normalization #DeltaGPA", 100, -4., 4.);
+	TH1D* hDeltaGpaCdf = new TH1D("hDeltaGpaCdf", "Grade CDF based #DeltaGPA", 100, -4., 4.);
 	
 	TH1D* hDeltaCourseBiased = new TH1D("hDeltaCourseBiased", "Single Course Prediction, Biased", 100, -4., 4.);
 	TH1D* hDeltaCourseRaw = new TH1D("hDeltaCourseRaw", "Single Course Prediction, Unbiased", 100, -4., 4.);
 	TH1D* hDeltaCourseNormed = new TH1D("hDeltaCourseNormed", "Single Course Prediction, Normed", 100, -4., 4.);
+	TH1D* hDeltaCourseCdf = new TH1D("hDeltaCourseCdf", "Single Course Prediction, CDF", 100, -4., 4.);
 	
 	long nentries = studentTree->GetEntriesFast();
 	std::cout << "Look at Semester Grade Predictions using " << nentries << " students." << std::endl;
+	
+	TCanvas* c0 = new TCanvas("cGradePrediction_0", "A Few Student Cumulative Grade Distribution Inverses", 1600, 1200);
+	TCanvas* c4 = new TCanvas("cGradePrediction_4", "Student Sem and Sem Bar CDFs", 1600, 1200);
+	TCanvas* c5 = new TCanvas("cGradePrediction_5", "Student Course and Course Bar CDFs", 1600, 1200);
+	c0->Divide(3,3);
+	c4->Divide(1,2);
+	c5->Divide(1,2);
+	int iPad = 0;
+	char* s = new char[1];
+	
 	for (long jentry = 0; jentry < nentries; jentry++) {
 		studentTree->GetEntry(jentry);
 		student->Finalize();  // This populates the enrollment.grades stuff which is just references
 		
 		double gpaFullRaw = student->Gpa();  // Standard GPA, all semesters
+		
+		// Draw the first few distributions.
+		if (iPad < 9) {
+			iPad++;
+			c0->cd(iPad);
+			student->CombinedCdf()->Draw("AP");
+		}
 		
 		// Loop over semesters and calculate different ways of predicting the semester's GPA
 		for (auto const& enrollment : student->Enrollments()) {
@@ -58,10 +80,42 @@ void GradePredictionTest() {
 			
 			// Semester prediction based on simple course (mean, sigma) normalizing
 			double gpaSemPredictionNormed = student->NormedGpaPrediction(term);
-
+			
+			// Use Cumulative Distribution Function methed...
+			std::vector<Student::Grade> gradesThisSemester = student->TermLetterGradeList(term);
+			std::vector<Student::Grade> gradesThisSemesterBar = student->TermLetterGradeList(-term);
+			TGraph* cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
+			double gpaSemBar = student->Gpa(gradesThisSemesterBar);
+			// Instead of Eval, find first point that is greater than pct.  Then value is pct from previous point
+//			double pctSemBar = cdfSemBar->Eval(gpaSemBar);  // This is the students expected percent ranking, based on grades not including this semester
+			double pctSemBar = MyFunctions::EvalCdf(cdfSemBar, gpaSemBar);
+			TGraph* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
+			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
+			if (scan) {
+				c4->cd(1);
+				cdfSemBar->Draw("AP");
+				TMarker m(gpaSemBar, pctSemBar, 29);
+				m.Draw();
+				TLine l(gpaSemBar, 0., gpaSemBar, pctSemBar);
+				l.Draw();
+				l.DrawLine(0., pctSemBar, gpaSemBar, pctSemBar);
+				c4->cd(2);
+				cdfInvSem->Draw("AP");
+				m.DrawMarker(pctSemBar, gpaSemPredictionCdf);
+				l.DrawLine(0., gpaSemRaw, 1., gpaSemRaw);
+				std::cout << "gpaSmeBar = " << gpaSemBar << ", pctSemBar = " << pctSemBar << ", gpaSemPred = " << gpaSemPredictionCdf << ", gpaSem = " << gpaSemRaw << std::endl;
+				c4->Modified();
+				c4->Update();
+				std::cout << "Next (q to quit):";
+				if (gSystem->ProcessEvents()) return;
+				gets(s);
+				if (s[0] == 'q') return;
+			}
+			
 			hDeltaGpaBiased->Fill(gpaSemRaw - gpaFullRaw);  // Biased residual
 			hDeltaGpaRaw->Fill(gpaSemRaw - gpaSemBarRaw);   // Unbiased residual
-			hDeltaGpaNormed->Fill(gpaSemRaw - gpaSemPredictionNormed);  
+			hDeltaGpaNormed->Fill(gpaSemRaw - gpaSemPredictionNormed);
+			hDeltaGpaCdf->Fill(gpaSemRaw - gpaSemPredictionCdf);
 			
 			// Now look at seom single course predictive measures
 			for (Student::Grade const& grade : enrollment.grades) {
@@ -73,11 +127,42 @@ void GradePredictionTest() {
 				
 				// Single course prediction based on simple course normalizing
 				double qualityPredictionNormed = student->NormedCoursePrediction(&grade);
-				std::cout << "Normed course prection: thisCourse, prediction = " << thisQuality << ", " << qualityPredictionNormed << std::endl;
+
+				// Try CDF prediction:
+				TGraph* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
+				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
+				std::vector<Student::Grade> oneCourse;
+				oneCourse.push_back(grade);
+				TGraph* cdfInvCourse = student->CombinedCdfInv(oneCourse);
+				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);
 				hDeltaCourseNormed->Fill(thisQuality - qualityPredictionNormed);
+				hDeltaCourseCdf->Fill(thisQuality - qualityPredictionCdf);
+				
+				if (scan) {
+					c5->cd(1);
+					cdfCourseBar->Draw("AP");
+					TMarker m(gpaCourseBar, pctCourseBar, 29);
+					m.Draw();
+					TLine l(gpaCourseBar, 0., gpaCourseBar, pctCourseBar);
+					l.Draw();
+					l.DrawLine(0., pctCourseBar, gpaCourseBar, pctCourseBar);
+					c5->cd(2);
+					cdfInvCourse->Draw("AP");
+					m.DrawMarker(pctCourseBar, qualityPredictionCdf);
+					l.DrawLine(0., thisQuality, 1., thisQuality);
+					std::cout << "gpaCourseBar = " << gpaCourseBar << ", pctCourseBar = " << pctCourseBar << ", gpaCoursePred = " << qualityPredictionCdf << ", gpaSem = " << thisQuality << std::endl;
+					c5->Modified();
+					c5->Update();
+					std::cout << "Next (q to quit):";
+					if (gSystem->ProcessEvents()) return;
+					gets(s);
+					if (s[0] == 'q') return;
+				}
+			
+				
 			}
 		}
 	}
@@ -94,6 +179,9 @@ void GradePredictionTest() {
 	c1->cd(3);
 	hDeltaGpaNormed->Fit("gaus");
 	hDeltaGpaNormed->DrawCopy();
+	c1->cd(4);
+	hDeltaGpaCdf->Fit("gaus");
+	hDeltaGpaCdf->DrawCopy();
 	
 	TCanvas* c2 = new TCanvas("cGradePrediction2", "Predicting Single Course Grade", 1600, 1200);
 	c2->Divide(2,2);
@@ -106,6 +194,9 @@ void GradePredictionTest() {
 	c2->cd(3);
 	hDeltaCourseNormed->Fit("gaus");
 	hDeltaCourseNormed->DrawCopy();
+	c2->cd(4);
+	hDeltaCourseCdf->Fit("gaus");
+	hDeltaCourseCdf->DrawCopy();
 	
 	outFile->Write();
 	outFile->Close();

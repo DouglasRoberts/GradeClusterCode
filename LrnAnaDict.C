@@ -55,7 +55,7 @@ namespace MyFunctions {
       inline ::ROOT::TGenericClassInfo *GenerateInitInstance()
       {
          static ::ROOT::TGenericClassInfo 
-            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 9,
+            instance("MyFunctions", 0 /*version*/, "MyFunctions.h", 11,
                      ::ROOT::DefineBehavior((void*)0,(void*)0),
                      &MyFunctions_Dictionary, 0);
          return &instance;
@@ -121,7 +121,7 @@ namespace ROOT {
       ::Student *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::Student >(0);
       static ::ROOT::TGenericClassInfo 
-         instance("Student", ::Student::Class_Version(), "Student.h", 10,
+         instance("Student", ::Student::Class_Version(), "Student.h", 12,
                   typeid(::Student), DefineBehavior(ptr, ptr),
                   &::Student::Dictionary, isa_proxy, 16,
                   sizeof(::Student) );
@@ -156,7 +156,7 @@ namespace ROOT {
       ::Student::Grade *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(::Student::Grade));
       static ::ROOT::TGenericClassInfo 
-         instance("Student::Grade", "Student.h", 17,
+         instance("Student::Grade", "Student.h", 19,
                   typeid(::Student::Grade), DefineBehavior(ptr, ptr),
                   &StudentcLcLGrade_Dictionary, isa_proxy, 0,
                   sizeof(::Student::Grade) );
@@ -201,7 +201,7 @@ namespace ROOT {
       ::Student::Enrollment *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(::Student::Enrollment));
       static ::ROOT::TGenericClassInfo 
-         instance("Student::Enrollment", "Student.h", 26,
+         instance("Student::Enrollment", "Student.h", 28,
                   typeid(::Student::Enrollment), DefineBehavior(ptr, ptr),
                   &StudentcLcLEnrollment_Dictionary, isa_proxy, 0,
                   sizeof(::Student::Enrollment) );
@@ -1099,7 +1099,7 @@ namespace {
     };
     static const char* includePaths[] = {
 "/Applications/root_v6.04.14/include",
-"/Users/roberts/LearningAnalytics/GradeClusterCode/",
+"/Volumes/Macintosh_HD_2/LearningAnalytics/GradeClusterCode/",
 0
     };
     static const char* fwdDeclCode = 

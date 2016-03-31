@@ -1,5 +1,7 @@
 #include "Student.h"
 #include "MyFunctions.h"
+#include <TGraph.h>
+#include <TGraphAsymmErrors.h>
 #include <cassert>
 #include <iostream>
 
@@ -108,12 +110,33 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 		return 0.;
 }
 
+double Student::Gpa(const std::vector<Student::Grade> grades) const {
+	// Calculate GPA (raw) from a list of grade objects.  This will use all of them (if they are valid grades).
+	double creditsAttempted = 0.;
+	double qualityPoints = 0.;
+	for (auto grade : grades) {
+		if (!MyFunctions::ValidGrade(grade.grade)) continue;
+		creditsAttempted += grade.credits;
+		qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+	}
+	if(creditsAttempted > 0.)
+		return qualityPoints/creditsAttempted;
+	else
+		return 0.;
+}
+
 std::vector<Student::Grade> Student::TermLetterGradeList(int term) const {
 	std::vector<Student::Grade> retVal;
-	for (Grade const& grade : _grades) {
+	for (auto const& grade : _grades) {
 		// Find valid posted grades corresponding to the passed term
-		if (grade.term == term && MyFunctions::ValidGrade(grade.grade))
-			retVal.push_back(grade);
+		// If term is negative, return all valid grades that aren't from this term
+		if (MyFunctions::ValidGrade(grade.grade)) {
+			if (term > 0 && grade.term == term)
+				retVal.push_back(grade);
+			if (term < 0 && grade.term != -term) {
+				retVal.push_back(grade);
+			}
+		}
 	}
 	return retVal;
 }
@@ -137,7 +160,6 @@ double Student::NormedCoursePrediction(const Student::Grade* gradeToExclude) con
 			beta = allCourses->second.Average() - alpha*thisCourse->second.Average();
 		}
 	}
-	std::cout << "Aplha, beta = " << alpha << ", " << beta << std::endl;
 	return (primedPrediction - beta)/alpha;
 }
 
@@ -293,4 +315,58 @@ TString Student::EnrollmentType(int term) const {
 	}
 	std::cout << "Couldn't find enrollment for term " << term << ", ID = " << _id << std::endl;
 	return "UNKN";
+}
+
+TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inverse, const Student::Grade* exclude) const {
+	//This function returns the inverse of the cumulative grade distribution functions for the courses that are in the list "grades"
+	MyFunctions::BuildGradeNormMap();  // Just in case it wasn't built before.  It should be cached and return right away if it's there.
+	
+	std::vector<std::pair<double, double>> deltas;
+	double totalCredits = 0.;
+	for (auto grade : grades) {
+		if (exclude != 0 && exclude->course == grade.course && exclude->term == grade.term) continue;
+		auto search = MyFunctions::gradeNormMap.find(grade.course);
+		if (search == MyFunctions::gradeNormMap.end()) continue;
+		CourseGradeNormer& cgn = search->second;
+		TGraph* inv = cgn.CumulativeGraphInverse();
+		
+		double yPrev = 0.;
+		int n = inv->GetN();
+		double* x = inv->GetX();
+		double* y = inv->GetY();
+		for (int i = 0; i < n; ++i) {
+			double delY = y[i] - yPrev;
+			delY *= grade.credits;
+			yPrev = y[i];deltas.push_back(std::make_pair(x[i], delY));
+		}
+		totalCredits += grade.credits;
+	}
+	std::sort(deltas.begin(), deltas.end());
+	double yTotal = 0.;
+	std::vector<double> xvals;
+	std::vector<double> yvals;
+//	std::vector<double> errEmpty;
+	std::vector<double> errXminus;
+	double xPrev = 0.;
+	for (auto point : deltas) {
+		yTotal += point.second/totalCredits;
+		xvals.push_back(point.first);
+		yvals.push_back(yTotal);
+//		errEmpty.push_back(0.);
+		errXminus.push_back(point.first - xPrev);
+		xPrev = point.first;
+	}
+	TGraph* retVal = 0;
+	if (inverse) {
+		retVal = new TGraphAsymmErrors(xvals.size(), &xvals[0], &yvals[0], &errXminus[0]);
+		retVal->SetTitle("Inverse Cumulative Distribution Function;Percentile;GPA");
+	}
+	else {
+		retVal = new TGraphAsymmErrors(xvals.size(), &yvals[0], &xvals[0], 0, 0, &errXminus[0]);
+		retVal->SetTitle("Cumulative Distribution Function;GPA;Percentile");
+	}
+	retVal->SetMarkerSize(0.5);
+	retVal->SetMarkerStyle(20);
+	retVal->SetMarkerColor(kBlue);
+	return retVal;
 }

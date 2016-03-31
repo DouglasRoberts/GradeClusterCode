@@ -3,6 +3,7 @@
 
 #include <TCanvas.h>
 #include <TGraph.h>
+#include <TGraphAsymmErrors.h>
 #include <TString.h>
 
 #include <iostream>
@@ -80,18 +81,24 @@ void PracticeAdding() {
 	double yTotal = 0.;
 	std::vector<double> xvals;
 	std::vector<double> yvals;
+	std::vector<double> errEmpty;
+	std::vector<double> errXminus;
+	double xPrev = 0.0;
 	for (auto point : deltas) {
 		yTotal += point.second/totalCredits;
 		xvals.push_back(point.first);
 		yvals.push_back(yTotal);
+		errEmpty.push_back(0.);
+		errXminus.push_back(point.first - xPrev);
+		xPrev = point.first;
 	}
-	TGraph* sumGraph = new TGraph(xvals.size(), &xvals[0], &yvals[0]);
+	TGraph* sumGraph = new TGraphAsymmErrors(xvals.size(), &xvals[0], &yvals[0], &errXminus[0]);
 	sumGraph->SetTitle("Test Adding Inverse Functions;Percentile;GPA");
 	sumGraph->SetMarkerSize(1.);
 	sumGraph->SetMarkerStyle(20);
 	sumGraph->SetMarkerColor(kBlue);
 	c1->cd(pad);
-	sumGraph->Draw();
+	sumGraph->Draw("AP");
 	
 	
 	return;
