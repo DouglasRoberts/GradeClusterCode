@@ -1034,7 +1034,7 @@ namespace {
     };
     static const char* includePaths[] = {
 "/Applications/root_v6.04.14/include",
-"/Volumes/Macintosh_HD_2/LearningAnalytics/GradeClusterCode/",
+"/Users/roberts/LearningAnalytics/GradeClusterCode/",
 0
     };
     static const char* fwdDeclCode = 
