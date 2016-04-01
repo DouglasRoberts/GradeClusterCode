@@ -50,7 +50,7 @@ void PracticeAdding() {
 	
 	MyFunctions::BuildGradeNormMap();
 	
-	std::vector<TString> courses = {"ENGL101", "MATH140", "COMM107", "UNIV101"};
+	std::vector<TString> courses = {"MATH002", "PHIL140"};
 	
 	TCanvas* c1 = new TCanvas("c1", "Adding Inverses", 1600, 1200);
 	c1->Divide(2,3);

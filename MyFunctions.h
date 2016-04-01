@@ -27,6 +27,7 @@ namespace MyFunctions
 	void BuildGradeNormMap();
 	
 	double EvalCdf(TGraph* cdf, double x);
+	double EvalInvCdf(TGraph* invCdf, double p);
 		
 	extern std::map<TString, CourseGradeNormer> gradeNormMap;
 }

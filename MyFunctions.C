@@ -25,7 +25,19 @@ double MyFunctions::EvalCdf(TGraph* cdf, double x) {
 		}
 	}
 	// Should never get here!
+	std::cout << "Shouldn't be here, last point, x = (" << X[cdf->GetN()-1] << ", " << Y[cdf->GetN()-1] << ") : " << x << std::endl;
+	return Y[cdf->GetN()-1];
 	assert(0);
+}
+
+double MyFunctions::EvalInvCdf(TGraph* invCdf, double p) {
+	double* x = invCdf->GetX();
+	double* y = invCdf->GetY();
+	for (int i = 0; i < invCdf->GetN(); ++i) {
+		if (x[i] >= p)
+			return y[i];
+	}
+	return y[invCdf->GetN() - 1];
 }
 
 void MyFunctions::BuildGradeNormMap() {

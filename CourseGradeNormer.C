@@ -59,17 +59,21 @@ TGraph* CourseGradeNormer::CumulativeGraph() {
 		if (cumulativeGradeDistribution == 0)
 			return 0;
 		double xVals[13], yVals[13];
+		int j = 0;
 		for (int i = 0; i < 13; i++) {
 			TString grade = cumulativeGradeDistribution->GetXaxis()->GetBinLabel(i+1);
-			xVals[i] = MyFunctions::GradeToQuality(grade);
-			yVals[i] = cumulativeGradeDistribution->GetBinContent(i+1);
+			if (gradeDistribution->GetBinContent(i+1) != 0) {
+				xVals[j] = MyFunctions::GradeToQuality(grade);
+				yVals[j] = cumulativeGradeDistribution->GetBinContent(i+1);
+				++j;
+			}
 		}
-		cumulativeGraph = new TGraph(13, xVals, yVals);
+		cumulativeGraph = new TGraph(j, xVals, yVals);
 		cumulativeGraph->SetTitle("Cumulative Grade Distribution;Grade Quality Points;Percentile");
 		cumulativeGraph->SetMarkerSize(1.);
 		cumulativeGraph->SetMarkerStyle(20);
 		cumulativeGraph->SetMarkerColor(kBlue);
-		cumulativeGraphInverse = new TGraph(13, yVals, xVals);
+		cumulativeGraphInverse = new TGraph(j, yVals, xVals);
 		cumulativeGraphInverse->SetTitle("Inverse Cumulative Grade Distribution;Percentile;Grade Quality Points");
 		cumulativeGraphInverse->SetMarkerSize(1.);
 		cumulativeGraphInverse->SetMarkerStyle(20);

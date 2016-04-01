@@ -246,7 +246,7 @@ void CreateStudentObjects() {
 			if (student.EnrollmentType(grade.term) == "UNKN") goodStudent = false;
 		}
 		if (!goodStudent) continue;
-		student.Finalize();
+//		student.Finalize();
 //		if (student.EarnedCredits() >= 80)
 		studentTree->Fill();
 //		else

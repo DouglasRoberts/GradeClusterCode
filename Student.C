@@ -49,6 +49,9 @@ double Student::ExpectedGpa(double pctRank) const {
 				sumCredits += credits;
 				sumQpCr += credits*MyFunctions::GradeToQuality(expectedGrade);
 			}
+			else {
+				std::cout << "Course not found in NormMap : " << grade.course << std::endl;
+			}
 		}
 	}
 	if (sumCredits > 0.)
@@ -324,6 +327,7 @@ TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inve
 	std::vector<std::pair<double, double>> deltas;
 	double totalCredits = 0.;
 	for (auto grade : grades) {
+		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		if (exclude != 0 && exclude->course == grade.course && exclude->term == grade.term) continue;
 		auto search = MyFunctions::gradeNormMap.find(grade.course);
 		if (search == MyFunctions::gradeNormMap.end()) continue;
@@ -337,7 +341,8 @@ TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inve
 		for (int i = 0; i < n; ++i) {
 			double delY = y[i] - yPrev;
 			delY *= grade.credits;
-			yPrev = y[i];deltas.push_back(std::make_pair(x[i], delY));
+			yPrev = y[i];
+			deltas.push_back(std::make_pair(x[i], delY));
 		}
 		totalCredits += grade.credits;
 	}

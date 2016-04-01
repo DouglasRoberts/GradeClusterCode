@@ -90,7 +90,8 @@ void GradePredictionTest(bool scan = false) {
 //			double pctSemBar = cdfSemBar->Eval(gpaSemBar);  // This is the students expected percent ranking, based on grades not including this semester
 			double pctSemBar = MyFunctions::EvalCdf(cdfSemBar, gpaSemBar);
 			TGraph* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
-			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
+			double gpaSemPredictionCdf = MyFunctions::EvalInvCdf(cdfInvSem, pctSemBar);
+//			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
 			if (scan) {
 				c4->cd(1);
 				cdfSemBar->Draw("AP");
@@ -120,6 +121,10 @@ void GradePredictionTest(bool scan = false) {
 			// Now look at seom single course predictive measures
 			for (Student::Grade const& grade : enrollment.grades) {
 				if (!MyFunctions::ValidGrade(grade.grade)) continue;
+	
+				if (jentry == 0) {
+					std::cout << "Student 0, Course = " << grade.course << std::endl;
+				}
 				double thisQuality = MyFunctions::GradeToQuality(grade.grade);
 				
 				// Standard cumulative GPA without this course
@@ -130,11 +135,13 @@ void GradePredictionTest(bool scan = false) {
 
 				// Try CDF prediction:
 				TGraph* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
-				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
+//				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
+				double pctCourseBar = MyFunctions::EvalCdf(cdfCourseBar, gpaCourseBar);
 				std::vector<Student::Grade> oneCourse;
 				oneCourse.push_back(grade);
 				TGraph* cdfInvCourse = student->CombinedCdfInv(oneCourse);
-				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
+				double qualityPredictionCdf = MyFunctions::EvalInvCdf(cdfInvCourse, pctCourseBar);
+//				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);
