@@ -321,7 +321,6 @@ TString Student::EnrollmentType(int term) const {
 }
 
 TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inverse, const Student::Grade* exclude) const {
-	//This function returns the inverse of the cumulative grade distribution functions for the courses that are in the list "grades"
 	MyFunctions::BuildGradeNormMap();  // Just in case it wasn't built before.  It should be cached and return right away if it's there.
 	
 	std::vector<std::pair<double, double>> deltas;
@@ -355,12 +354,22 @@ TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inve
 	double xPrev = 0.;
 	for (auto point : deltas) {
 		yTotal += point.second/totalCredits;
-		xvals.push_back(point.first);
-		yvals.push_back(yTotal);
-//		errEmpty.push_back(0.);
-		errXminus.push_back(point.first - xPrev);
+		// Try to clean up the distribution?  There should only be one point at a given x value
+		if (xPrev >= point.first) {
+			yvals.back() = yTotal; 
+		}
+		else {
+			xvals.push_back(point.first);
+			yvals.push_back(yTotal);
+		}
 		xPrev = point.first;
 	}
+	xPrev = 0.;
+	for (auto x : xvals) {
+		errXminus.push_back(x - xPrev);
+		xPrev = x;
+	}
+
 	TGraph* retVal = 0;
 	if (inverse) {
 		retVal = new TGraphAsymmErrors(xvals.size(), &xvals[0], &yvals[0], &errXminus[0]);

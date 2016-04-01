@@ -5,6 +5,7 @@
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TLine.h>
 #include <TMarker.h>
 #include <TSystem.h>
@@ -27,6 +28,15 @@ void GradePredictionTest(bool scan = false) {
 	
 	// Book some histograms
 	TFile* outFile = new TFile("GradePredictions.root", "RECREATE");
+	
+	TH1D* hAllGpa = new TH1D("hAllGpa", "All Student GPAs", 100, 0., 4.3);
+	TH1* hAllGpaCdf = 0;
+	TH1D* hDiffRank = new TH1D("hDiffRank", "#Delta_{Rank}, CDF - RAW", 100, -.02, .02);
+	TH2D* hDiffRank2D = new TH2D("hDiffRank2D", "Rank_{CDF} vs. Rank_{Raw}", 100, 0., 1., 100, 0., 1.);
+	TH1D* hDiffGpaRaw = new TH1D("hDiffGpaRaw", "#Delta between using Eval pct and and GPA", 100, -.02, .02);
+	TH1D* hDiffGpaCdf = new TH1D("hDiffGpaCdf", "#Delta between using Cdf pct and and GPA", 100, -.02, .02);
+	
+	
 	TH1D* hDeltaGpaBiased = new TH1D("hDeltaGpaBiase", "Biased, Raw #DeltaGPA", 100, -4., 4.);
 	TH1D* hDeltaGpaRaw = new TH1D("hDeltaGpaRaw", "Unbiased, Raw #DeltaGPA", 100, -4., 4.);
 	TH1D* hDeltaGpaNormed = new TH1D("hDeltaGpaNormed", "Course (Mean, #sigma) based grade normalization #DeltaGPA", 100, -4., 4.);
@@ -40,10 +50,29 @@ void GradePredictionTest(bool scan = false) {
 	long nentries = studentTree->GetEntriesFast();
 	std::cout << "Look at Semester Grade Predictions using " << nentries << " students." << std::endl;
 	
+	// First, do one loop over students to get their overall GPA distribution
+	for (long jentry = 0; jentry < nentries; ++jentry) {
+		studentTree->GetEntry(jentry);
+		student->Finalize();
+		hAllGpa->Fill(student->Gpa());
+	}
+	hAllGpaCdf = hAllGpa->GetCumulative();
+	hAllGpaCdf->Scale(1./hAllGpa->Integral());
+	
+	TCanvas* cGpa = new TCanvas("cGpa", "Testing overall GPA stuff", 1600, 1200);
+	cGpa->Divide(3,3);
+	cGpa->cd(1);
+	hAllGpa->DrawCopy();
+	cGpa->cd(2);
+	hAllGpaCdf->DrawCopy();
+	
 	TCanvas* c0 = new TCanvas("cGradePrediction_0", "A Few Student Cumulative Grade Distribution Inverses", 1600, 1200);
 	TCanvas* c4 = new TCanvas("cGradePrediction_4", "Student Sem and Sem Bar CDFs", 1600, 1200);
 	TCanvas* c5 = new TCanvas("cGradePrediction_5", "Student Course and Course Bar CDFs", 1600, 1200);
 	c0->Divide(3,3);
+	for (int i = 1; i <=9; ++i)
+		c0->cd(i)->Divide(1,2);
+		
 	c4->Divide(1,2);
 	c5->Divide(1,2);
 	int iPad = 0;
@@ -54,12 +83,26 @@ void GradePredictionTest(bool scan = false) {
 		student->Finalize();  // This populates the enrollment.grades stuff which is just references
 		
 		double gpaFullRaw = student->Gpa();  // Standard GPA, all semesters
+		double pctRankGpaRaw = hAllGpaCdf->Interpolate(gpaFullRaw);
+		// This is % rank based more on the sutdent's actuall course load.  These two should be comparable?
+		double pctRankGpaCdf = MyFunctions::EvalCdf(student->CombinedCdf(), gpaFullRaw);
+		double pctRankGpaEval = student->CombinedCdf()->Eval(gpaFullRaw);
+		hDiffRank->Fill(pctRankGpaCdf - pctRankGpaEval);
+		hDiffRank2D->Fill(pctRankGpaRaw, pctRankGpaCdf);
+		
+		double predGpaEval = student->CombinedCdfInv()->Eval(pctRankGpaEval);
+//		double predGpaEval = MyFunctions::EvalInvCdf(student->CombinedCdfInv(), pctRankGpaRaw);
+		double predGpaCdf = MyFunctions::EvalInvCdf(student->CombinedCdfInv(), pctRankGpaCdf);
+		hDiffGpaRaw->Fill(predGpaEval - gpaFullRaw);
+		hDiffGpaCdf->Fill(predGpaCdf - gpaFullRaw);
 		
 		// Draw the first few distributions.
 		if (iPad < 9) {
 			iPad++;
-			c0->cd(iPad);
+			c0->cd(iPad)->cd(1);
 			student->CombinedCdf()->Draw("AP");
+			c0->cd(iPad)->cd(2);
+			student->CombinedCdfInv()->Draw("AP");
 		}
 		
 		// Loop over semesters and calculate different ways of predicting the semester's GPA
@@ -87,11 +130,11 @@ void GradePredictionTest(bool scan = false) {
 			TGraph* cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
 			double gpaSemBar = student->Gpa(gradesThisSemesterBar);
 			// Instead of Eval, find first point that is greater than pct.  Then value is pct from previous point
-//			double pctSemBar = cdfSemBar->Eval(gpaSemBar);  // This is the students expected percent ranking, based on grades not including this semester
-			double pctSemBar = MyFunctions::EvalCdf(cdfSemBar, gpaSemBar);
+			double pctSemBar = cdfSemBar->Eval(gpaSemBar);  // This is the students expected percent ranking, based on grades not including this semester
+//			double pctSemBar = MyFunctions::EvalCdf(cdfSemBar, gpaSemBar);
 			TGraph* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
-			double gpaSemPredictionCdf = MyFunctions::EvalInvCdf(cdfInvSem, pctSemBar);
-//			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
+//			double gpaSemPredictionCdf = MyFunctions::EvalInvCdf(cdfInvSem, pctSemBar);
+			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
 			if (scan) {
 				c4->cd(1);
 				cdfSemBar->Draw("AP");
@@ -135,13 +178,13 @@ void GradePredictionTest(bool scan = false) {
 
 				// Try CDF prediction:
 				TGraph* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
-//				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
-				double pctCourseBar = MyFunctions::EvalCdf(cdfCourseBar, gpaCourseBar);
+				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
+//				double pctCourseBar = MyFunctions::EvalCdf(cdfCourseBar, gpaCourseBar);
 				std::vector<Student::Grade> oneCourse;
 				oneCourse.push_back(grade);
 				TGraph* cdfInvCourse = student->CombinedCdfInv(oneCourse);
-				double qualityPredictionCdf = MyFunctions::EvalInvCdf(cdfInvCourse, pctCourseBar);
-//				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
+//				double qualityPredictionCdf = MyFunctions::EvalInvCdf(cdfInvCourse, pctCourseBar);
+				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);
@@ -175,6 +218,16 @@ void GradePredictionTest(bool scan = false) {
 	}
 	
 	// Plot some results
+	
+	cGpa->cd(3);
+	hDiffRank->DrawCopy();
+	cGpa->cd(4);
+	hDiffRank2D->DrawCopy();
+	cGpa->cd(5);
+	hDiffGpaRaw->DrawCopy();
+	cGpa->cd(6);
+	hDiffGpaCdf->DrawCopy();
+	
 	TCanvas* c1 = new TCanvas("cGradePrediction1", "Predicting Semester GPA", 1600, 1200);
 	c1->Divide(2,2);
 	c1->cd(1);
