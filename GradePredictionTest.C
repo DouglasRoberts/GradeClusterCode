@@ -96,6 +96,7 @@ void GradePredictionTest(bool scan = false) {
 		hDiffGpaRaw->Fill(predGpaEval - gpaFullRaw);
 		hDiffGpaCdf->Fill(predGpaCdf - gpaFullRaw);
 		
+		// Try to 
 		// Draw the first few distributions.
 		if (iPad < 9) {
 			iPad++;
