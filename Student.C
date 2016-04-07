@@ -39,7 +39,7 @@ double Student::ExpectedGpa(double pctRank) const {
 		// Is this a valid grade?
 		if (MyFunctions::ValidGrade(grade.grade)) {
 			// Only count courses that we can find on the normed course map?
-			auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+			auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, 0));
 			if (thisCourse != MyFunctions::gradeNormMap.end()) {
 				double credits = grade.credits;
 				TH1D* cumDist = thisCourse->second.CumulativeDistribution();
@@ -80,8 +80,8 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 		if (MyFunctions::ValidGrade(grade.grade)) {
 			if (normed) {
 				alpha = 1.; beta = 0.;  // Default values
-				auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
-				auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+				auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", 0));
+				auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, 0));
 				if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
 					double allAvg = allCourses->second.Average();
 					double allStdDev = allCourses->second.StdDev();
@@ -155,8 +155,8 @@ double Student::NormedCoursePrediction(const Student::Grade* gradeToExclude) con
 	// Now, un-norm this prediction for this course
 	double alpha = 1.;
 	double beta = 0.;
-	auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
-	auto thisCourse = MyFunctions::gradeNormMap.find(gradeToExclude->course);
+	auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", 0));
+	auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(gradeToExclude->course, 0));
 	if (thisCourse != MyFunctions::gradeNormMap.end() && allCourses != MyFunctions::gradeNormMap.end()) {
 		if (thisCourse->second.StdDev() > 0.) {
 			alpha = allCourses->second.StdDev()/thisCourse->second.StdDev();
@@ -175,8 +175,8 @@ double Student::UnNormedGpa(double normedPrediction, int term, TString courseToE
 		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		if (grade.term != term) continue;
 		if (grade.course == courseToExclude) continue;
-		auto allCourses = MyFunctions::gradeNormMap.find("AllCourses");
-		auto thisCourse = MyFunctions::gradeNormMap.find(grade.course);
+		auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", 0));
+		auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, 0));
 		alpha = 1.; beta = 0.;
 		if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
 			double allAvg = allCourses->second.Average();
@@ -328,7 +328,7 @@ TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inve
 	for (auto grade : grades) {
 		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		if (exclude != 0 && exclude->course == grade.course && exclude->term == grade.term) continue;
-		auto search = MyFunctions::gradeNormMap.find(grade.course);
+		auto search = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, 0));
 		if (search == MyFunctions::gradeNormMap.end()) continue;
 		CourseGradeNormer& cgn = search->second;
 		TGraph* inv = cgn.CumulativeGraphInverse();
