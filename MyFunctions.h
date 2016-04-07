@@ -30,6 +30,7 @@ namespace MyFunctions
 	double EvalInvCdf(TGraph* invCdf, double p);
 		
 	extern std::map<TString, CourseGradeNormer> gradeNormMap;
+	extern std::map<std::pair<TString, int>, CourseGradeNormer> gradeNormMapTerm;
 }
 
 

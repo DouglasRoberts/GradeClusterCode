@@ -10,6 +10,7 @@
 
 namespace MyFunctions {
  std::map<TString, CourseGradeNormer> gradeNormMap;
+ std::map<std::pair<TString, int>, CourseGradeNormer> gradeNormMapTerm;
 };
 
 double MyFunctions::EvalCdf(TGraph* cdf, double x) {
@@ -61,6 +62,10 @@ void MyFunctions::BuildGradeNormMap() {
 			if (!ValidGrade(grade.grade)) continue;
 			MyFunctions::gradeNormMap[grade.course].AddGrade(grade.grade);  // Will automatically create entry in map if it doesn't exist
 			MyFunctions::gradeNormMap["AllCourses"].AddGrade(grade.grade);
+			auto thisKey = std::make_pair(grade.course, term);
+			auto thisKeyAll = std::make_pair("AllCourses", term);
+			MyFunctions::gradeNormMapTerm[thisKey].AddGrade(grade.grade);
+			MyFunctions::gradeNormMapTerm[thisKeyAll].AddGrade(grade.grade);
 		}			
 	}
 	
