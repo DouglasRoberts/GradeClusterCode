@@ -9,11 +9,11 @@
 #include <iostream>
 #include <vector>
 
-void GradeNormMapPlots(TString course = "MATH140") {
+void GradeNormMapPlots(TString course = "MATH140", int term = 0) {
 	
 	MyFunctions::BuildGradeNormMap();
 	
-	CourseGradeNormer& cgn = MyFunctions::gradeNormMap.at(course);
+	CourseGradeNormer& cgn = MyFunctions::gradeNormMap.at(std::make_pair(course, term));
 	TCanvas* c1 = new TCanvas("c1", "Grade Norm Stuff", 1600, 1200);
 	c1->Divide(2,2);
 	c1->cd(1);
@@ -50,7 +50,8 @@ void PracticeAdding() {
 	
 	MyFunctions::BuildGradeNormMap();
 	
-	std::vector<TString> courses = {"MATH002", "PHIL140"};
+	std::vector<std::pair<TString, int>> courses = {std::make_pair("MATH002", 199908), std::make_pair("PHIL140", 199908),
+					std::make_pair("BMGT110A", 199908), std::make_pair("EDCP108O", 199908), std::make_pair("ENGL101M", 199908)};
 	
 	TCanvas* c1 = new TCanvas("c1", "Adding Inverses", 1600, 1200);
 	c1->Divide(2,3);

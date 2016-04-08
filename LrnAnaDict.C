@@ -43,6 +43,8 @@ namespace std {} using namespace std;
 #include "CourseGradeNormer.h"
 #include "GradeCluster.h"
 #include "MyFunctions.h"
+#include "CumulativeDistribution.h"
+#include "GradeHistogram.h"
 
 // Header files passed via #pragma extra_include
 
@@ -121,7 +123,7 @@ namespace ROOT {
       ::Student *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::Student >(0);
       static ::ROOT::TGenericClassInfo 
-         instance("Student", ::Student::Class_Version(), "Student.h", 12,
+         instance("Student", ::Student::Class_Version(), "Student.h", 13,
                   typeid(::Student), DefineBehavior(ptr, ptr),
                   &::Student::Dictionary, isa_proxy, 16,
                   sizeof(::Student) );
@@ -156,7 +158,7 @@ namespace ROOT {
       ::Student::Grade *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(::Student::Grade));
       static ::ROOT::TGenericClassInfo 
-         instance("Student::Grade", "Student.h", 19,
+         instance("Student::Grade", "Student.h", 20,
                   typeid(::Student::Grade), DefineBehavior(ptr, ptr),
                   &StudentcLcLGrade_Dictionary, isa_proxy, 0,
                   sizeof(::Student::Grade) );
@@ -201,7 +203,7 @@ namespace ROOT {
       ::Student::Enrollment *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(::Student::Enrollment));
       static ::ROOT::TGenericClassInfo 
-         instance("Student::Enrollment", "Student.h", 28,
+         instance("Student::Enrollment", "Student.h", 29,
                   typeid(::Student::Enrollment), DefineBehavior(ptr, ptr),
                   &StudentcLcLEnrollment_Dictionary, isa_proxy, 0,
                   sizeof(::Student::Enrollment) );
@@ -1095,11 +1097,13 @@ namespace {
 "CourseGradeNormer.h",
 "GradeCluster.h",
 "MyFunctions.h",
+"CumulativeDistribution.h",
+"GradeHistogram.h",
 0
     };
     static const char* includePaths[] = {
 "/Applications/root_v6.04.14/include",
-"/Users/roberts/LearningAnalytics/GradeClusterCode/",
+"/Volumes/Macintosh_HD_2/LearningAnalytics/GradeClusterCode/",
 0
     };
     static const char* fwdDeclCode = 
@@ -1131,6 +1135,8 @@ namespace std{inline namespace __1{template <class _Tp> class __attribute__((ann
 #include "CourseGradeNormer.h"
 #include "GradeCluster.h"
 #include "MyFunctions.h"
+#include "CumulativeDistribution.h"
+#include "GradeHistogram.h"
 
 #undef  _BACKWARD_BACKWARD_WARNING_H
 )DICTPAYLOAD";

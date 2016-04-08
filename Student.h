@@ -1,6 +1,7 @@
 #ifndef STUDENT_H
 #define STUDENT_H
 
+#include "CumulativeDistribution.h"
 #include <TObject.h>
 #include <TString.h>
 #include <functional>
@@ -55,7 +56,7 @@ public:
 	double NormedGpaPrediction(int term) const;
 	double NormedCoursePrediction(const Student::Grade* gradeToExclude) const;  // Single course prediction, in quality points
 	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "") const;
-	double ExpectedGpa(double pctRank) const;  // Returns a student's expected GPA based on their overall percent rank.
+//	double ExpectedGpa(double pctRank) const;  // Returns a student's expected GPA based on their overall percent rank.
 	double SemesterGpaWithoutCourse(int term, TString course) const;
 	double CumGpaWithoutCourse(int term, TString course) const;   // Need to include term as argument in case course was repeated.
 	double EarnedCredits() const;
@@ -65,11 +66,12 @@ public:
 	double AvgAttemptedCredits() const;               // This also include S/P grades
 	double DegreeCredits() const;
 	
-	TGraph* CombinedCdf(const std::vector<Student::Grade> grades, bool inverse = false, const Student::Grade* gradeToExclude = 0) const;
-	TGraph* CombinedCdf() const {return CombinedCdf(_grades);}
-	TGraph* CombinedCdfWithoutCourse(const Student::Grade* grade) {return CombinedCdf(_grades, false, grade);}
-	TGraph* CombinedCdfInv(const std::vector<Student::Grade> grades) const {return CombinedCdf(grades, true);}
-	TGraph* CombinedCdfInv() const {return CombinedCdf(_grades, true);}
+	CumulativeDistribution CombinedCdf(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude = 0) const;
+	CumulativeDistribution CombinedCdf() const {return CombinedCdf(_grades);}
+	CumulativeDistribution CombinedCdfWithoutCourse(const Student::Grade* grade) {return CombinedCdf(_grades, grade);}
+
+	CumulativeDistributionInverse CombinedCdfInv(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude = 0) const;
+	CumulativeDistributionInverse CombinedCdfInv() const {return CombinedCdfInv(_grades);}
 	
 	int nDegrees() const {return _degrees.size();}
 	

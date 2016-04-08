@@ -1,6 +1,9 @@
 // My includes
 #include "Student.h"
+
+#include "CumulativeDistribution.h"
 #include "MyFunctions.h"
+
 // ROOT includes
 #include <TCanvas.h>
 #include <TFile.h>
@@ -12,7 +15,84 @@
 #include <TTree.h>
 // Other includes
 #include <iostream>
+#include <vector>
 
+void BasicTest(int entry = 0) {
+	
+	std::cout << "About to run some basic tests..." << std::endl;
+	MyFunctions::BuildGradeNormMap();
+	
+	TFile* studentFile = new TFile("Students.root");
+	TTree* studentTree = (TTree*)studentFile->Get("Students");
+	Student* student = 0;
+	studentTree->SetBranchAddress("student", &student);
+	
+	if (entry >= studentTree->GetEntriesFast() || entry < 0) {
+		std::cout << "Invalid entry number!" << std::endl;
+		return;
+	}
+	
+	// Look at this student
+	studentTree->GetEntry(entry);
+	student->Finalize();
+	
+	TCanvas* c1 = new TCanvas("c1","Basic Tests", 1600, 1200);
+	c1->Divide(3,2);
+	for (int i = 1; i <=9; ++i)
+		c1->cd(i)->Divide(2,2);
+	
+	// Look at one term
+	Student::Enrollment enrollment = student->Enrollments().at(0);
+	std::vector<Student::Grade> gradeList;
+	int iPad  = 0;
+	std::cout << "Course\tGrade\tCredits\tTerm" << std::endl;
+	for (Student::Grade const& grade : enrollment.grades) {
+		++iPad;
+		std::cout << grade.course << "\t" << grade.grade << "\t" << grade.credits << "\t" << grade.term <<std::endl;
+		gradeList.push_back(grade);
+		CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, grade.term));
+		c1->cd(iPad)->cd(1);
+		cgn.CumulativeGraph()->Draw("AP");
+		c1->cd(iPad)->cd(2);
+		cgn.CumulativeGraphInverse()->Draw("AP");
+		c1->cd(iPad)->cd(3);
+		CumulativeDistribution cdf = student->CombinedCdf(gradeList);
+		cdf.Draw("AP");
+		c1->cd(iPad)->cd(4);
+		CumulativeDistributionInverse inv = student->CombinedCdfInv(gradeList);
+		inv.Draw("AP");
+	}
+	
+//	return;
+	// Invertability test of single CDF.  Passed!
+	bool first = true;
+	for (int jentry = 0; jentry < studentTree->GetEntriesFast(); ++jentry) {
+		studentTree->GetEntry(entry);
+		student->Finalize();
+		
+		for (Student::Grade const& grade : student->Grades()) {
+			if (!MyFunctions::ValidGrade(grade.grade)) continue;
+			if (!MyFunctions::regularSemester(grade.term)) continue;
+			double qualityIn = MyFunctions::GradeToQuality(grade.grade);
+			CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, grade.term));
+			double qualityOut = cgn.CumulativeGraphInverse()->Evaluate(cgn.CumulativeGraph()->Evaluate(qualityIn));
+			// Test equality double?
+			if (qualityIn != qualityOut) {
+				if (first) {
+//					first = false;
+					std::cout << "Failed Inversion: In = " << qualityIn << ", Out = " << qualityOut << std::endl;
+					std::cout << "CDF Evaluate = " << cgn.CumulativeGraph()->Evaluate(qualityIn) << std::endl;
+					std::cout << "CDF:" << std::endl;
+					cgn.CumulativeGraph()->Print();
+					std::cout << "CDF-1:" << std::endl;
+					cgn.CumulativeGraphInverse()->Print();
+				}
+			}
+		}
+	}
+}
+
+/*
 void GradePredictionTest(bool scan = false) {
 	// This macro just tests various ways of predicting a student's GPA in a semester.
 	
@@ -85,14 +165,15 @@ void GradePredictionTest(bool scan = false) {
 		double gpaFullRaw = student->Gpa();  // Standard GPA, all semesters
 		double pctRankGpaRaw = hAllGpaCdf->Interpolate(gpaFullRaw);
 		// This is % rank based more on the sutdent's actuall course load.  These two should be comparable?
-		double pctRankGpaCdf = MyFunctions::EvalCdf(student->CombinedCdf(), gpaFullRaw);
-		double pctRankGpaEval = student->CombinedCdf()->Eval(gpaFullRaw);
-		hDiffRank->Fill(pctRankGpaCdf - pctRankGpaEval);
+//		double pctRankGpaCdf = MyFunctions::EvalCdf(student->CombinedCdf(), gpaFullRaw);
+		double pctRankGpaCdf = student->CombinedCdf()->Evaluate(gpaFullRaw);
+//		double pctRankGpaEval = student->CombinedCdf()->Eval(gpaFullRaw);
+		hDiffRank->Fill(pctRankGpaCdf - pctRankGpaRaw);
 		hDiffRank2D->Fill(pctRankGpaRaw, pctRankGpaCdf);
 		
-		double predGpaEval = student->CombinedCdfInv()->Eval(pctRankGpaEval);
-//		double predGpaEval = MyFunctions::EvalInvCdf(student->CombinedCdfInv(), pctRankGpaRaw);
-		double predGpaCdf = MyFunctions::EvalInvCdf(student->CombinedCdfInv(), pctRankGpaCdf);
+//		double predGpaEval = student->CombinedCdfInv()->Eval(pctRankGpaEval);
+		double predGpaEval = student->CombinedCdfInv()->Evaluate(pctRankGpaRaw);
+		double predGpaCdf = student->CombinedCdfInv()->Evaluate(pctRankGpaCdf);
 		hDiffGpaRaw->Fill(predGpaEval - gpaFullRaw);
 		hDiffGpaCdf->Fill(predGpaCdf - gpaFullRaw);
 		
@@ -128,14 +209,13 @@ void GradePredictionTest(bool scan = false) {
 			// Use Cumulative Distribution Function methed...
 			std::vector<Student::Grade> gradesThisSemester = student->TermLetterGradeList(term);
 			std::vector<Student::Grade> gradesThisSemesterBar = student->TermLetterGradeList(-term);
-			TGraph* cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
+			CumulativeDistribution* cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
 			double gpaSemBar = student->Gpa(gradesThisSemesterBar);
-			// Instead of Eval, find first point that is greater than pct.  Then value is pct from previous point
-			double pctSemBar = cdfSemBar->Eval(gpaSemBar);  // This is the students expected percent ranking, based on grades not including this semester
-//			double pctSemBar = MyFunctions::EvalCdf(cdfSemBar, gpaSemBar);
-			TGraph* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
-//			double gpaSemPredictionCdf = MyFunctions::EvalInvCdf(cdfInvSem, pctSemBar);
-			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
+
+			double pctSemBar = cdfSemBar->Evaluate(gpaSemBar);
+			CumulativeDistributionInverse* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
+//			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
+			double gpaSemPredictionCdf = cdfInvSem->Evaluate(pctSemBar);
 			if (scan) {
 				c4->cd(1);
 				cdfSemBar->Draw("AP");
@@ -167,7 +247,7 @@ void GradePredictionTest(bool scan = false) {
 				if (!MyFunctions::ValidGrade(grade.grade)) continue;
 	
 				if (jentry == 0) {
-					std::cout << "Student 0, Course = " << grade.course << std::endl;
+					std::cout << "Student 0, Course = " << grade.course << ", term = " << grade.term << std::endl;
 				}
 				double thisQuality = MyFunctions::GradeToQuality(grade.grade);
 				
@@ -178,14 +258,12 @@ void GradePredictionTest(bool scan = false) {
 				double qualityPredictionNormed = student->NormedCoursePrediction(&grade);
 
 				// Try CDF prediction:
-				TGraph* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
-				double pctCourseBar = cdfCourseBar->Eval(gpaCourseBar);
-//				double pctCourseBar = MyFunctions::EvalCdf(cdfCourseBar, gpaCourseBar);
+				CumulativeDistribution* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
+				double pctCourseBar = cdfCourseBar->Evaluate(gpaCourseBar);
 				std::vector<Student::Grade> oneCourse;
 				oneCourse.push_back(grade);
-				TGraph* cdfInvCourse = student->CombinedCdfInv(oneCourse);
-//				double qualityPredictionCdf = MyFunctions::EvalInvCdf(cdfInvCourse, pctCourseBar);
-				double qualityPredictionCdf = cdfInvCourse->Eval(pctCourseBar);
+				CumulativeDistributionInverse* cdfInvCourse = student->CombinedCdfInv(oneCourse);
+				double qualityPredictionCdf = cdfInvCourse->Evaluate(pctCourseBar);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);
@@ -265,3 +343,4 @@ void GradePredictionTest(bool scan = false) {
 	
 	return;
 }
+*/

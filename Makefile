@@ -6,7 +6,7 @@ endif
 
 
 MYCLASSES := SectionInfo Student CourseGradeNormer
-MYCLASSES += GradeCluster MyFunctions
+MYCLASSES += GradeCluster MyFunctions CumulativeDistribution GradeHistogram
 
 MYHEADERS := $(addsuffix .h, $(MYCLASSES))
 MYSOURCES := $(addsuffix .C, $(MYCLASSES))
