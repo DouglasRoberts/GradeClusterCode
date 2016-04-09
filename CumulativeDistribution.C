@@ -127,6 +127,9 @@ double CumulativeDistributionInverse::Evaluate(double p) const {
 	return y[this->GetN() - 1];
 }
 
+//void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list) {
+//	assert(this->GetN() == 0);
+//}
 void CumulativeDistributionInverse::Add(CumulativeDistributionInverse* other, double scale) {
 	
 	// Adds a cdf^-1 function to this one, multiplied by an optional scale factor

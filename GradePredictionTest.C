@@ -7,6 +7,7 @@
 // ROOT includes
 #include <TCanvas.h>
 #include <TFile.h>
+#include <TGraph.h>
 #include <TH1D.h>
 #include <TH2D.h>
 #include <TLine.h>
@@ -50,20 +51,21 @@ void BasicTest(int entry = 0) {
 		++iPad;
 		std::cout << grade.course << "\t" << grade.grade << "\t" << grade.credits << "\t" << grade.term <<std::endl;
 		gradeList.push_back(grade);
-		CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, grade.term));
+		CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, 0));
 		c1->cd(iPad)->cd(1);
 		cgn.CumulativeGraph()->Draw("AP");
 		c1->cd(iPad)->cd(2);
 		cgn.CumulativeGraphInverse()->Draw("AP");
 		c1->cd(iPad)->cd(3);
 		CumulativeDistribution cdf = student->CombinedCdf(gradeList);
-		cdf.Draw("AP");
+		TGraph* cdfClone = (TGraph*)cdf.Clone();
+		cdfClone->Draw("AP");
 		c1->cd(iPad)->cd(4);
 		CumulativeDistributionInverse inv = student->CombinedCdfInv(gradeList);
-		inv.Draw("AP");
+		TGraph* invClone = (TGraph*)inv.Clone();
+		invClone->Draw("AP");
 	}
 	
-//	return;
 	// Invertability test of single CDF.  Passed!
 	bool first = true;
 	for (int jentry = 0; jentry < studentTree->GetEntriesFast(); ++jentry) {
@@ -74,12 +76,12 @@ void BasicTest(int entry = 0) {
 			if (!MyFunctions::ValidGrade(grade.grade)) continue;
 			if (!MyFunctions::regularSemester(grade.term)) continue;
 			double qualityIn = MyFunctions::GradeToQuality(grade.grade);
-			CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, grade.term));
+			CourseGradeNormer cgn = MyFunctions::gradeNormMap.at(std::make_pair(grade.course, 0));
 			double qualityOut = cgn.CumulativeGraphInverse()->Evaluate(cgn.CumulativeGraph()->Evaluate(qualityIn));
 			// Test equality double?
 			if (qualityIn != qualityOut) {
 				if (first) {
-//					first = false;
+					first = false;
 					std::cout << "Failed Inversion: In = " << qualityIn << ", Out = " << qualityOut << std::endl;
 					std::cout << "CDF Evaluate = " << cgn.CumulativeGraph()->Evaluate(qualityIn) << std::endl;
 					std::cout << "CDF:" << std::endl;
@@ -90,10 +92,11 @@ void BasicTest(int entry = 0) {
 			}
 		}
 	}
+	if (first)
+		std::cout << "Passed Invertability Test!!!" << std::endl;
 }
 
-/*
-void GradePredictionTest(bool scan = false) {
+void GradePredictionTest() {
 	// This macro just tests various ways of predicting a student's GPA in a semester.
 	
 	std::cout << "About to build GradeNormMap..." << std::endl;
@@ -111,10 +114,10 @@ void GradePredictionTest(bool scan = false) {
 	
 	TH1D* hAllGpa = new TH1D("hAllGpa", "All Student GPAs", 100, 0., 4.3);
 	TH1* hAllGpaCdf = 0;
-	TH1D* hDiffRank = new TH1D("hDiffRank", "#Delta_{Rank}, CDF - RAW", 100, -.02, .02);
+	TH1D* hDiffRank = new TH1D("hDiffRank", "#Delta_{Rank}, CDF - RAW", 100, -.5, .5);
 	TH2D* hDiffRank2D = new TH2D("hDiffRank2D", "Rank_{CDF} vs. Rank_{Raw}", 100, 0., 1., 100, 0., 1.);
-	TH1D* hDiffGpaRaw = new TH1D("hDiffGpaRaw", "#Delta between using Eval pct and and GPA", 100, -.02, .02);
-	TH1D* hDiffGpaCdf = new TH1D("hDiffGpaCdf", "#Delta between using Cdf pct and and GPA", 100, -.02, .02);
+	TH1D* hDiffGpaRaw = new TH1D("hDiffGpaRaw", "#Delta between using Eval pct and and GPA", 100, -4., 4.);
+	TH1D* hDiffGpaCdf = new TH1D("hDiffGpaCdf", "#Delta between using Cdf pct and and GPA", 100, -0.2, 0.2);
 	
 	
 	TH1D* hDeltaGpaBiased = new TH1D("hDeltaGpaBiase", "Biased, Raw #DeltaGPA", 100, -4., 4.);
@@ -147,33 +150,34 @@ void GradePredictionTest(bool scan = false) {
 	hAllGpaCdf->DrawCopy();
 	
 	TCanvas* c0 = new TCanvas("cGradePrediction_0", "A Few Student Cumulative Grade Distribution Inverses", 1600, 1200);
-	TCanvas* c4 = new TCanvas("cGradePrediction_4", "Student Sem and Sem Bar CDFs", 1600, 1200);
-	TCanvas* c5 = new TCanvas("cGradePrediction_5", "Student Course and Course Bar CDFs", 1600, 1200);
 	c0->Divide(3,3);
 	for (int i = 1; i <=9; ++i)
 		c0->cd(i)->Divide(1,2);
 		
-	c4->Divide(1,2);
-	c5->Divide(1,2);
 	int iPad = 0;
 	char* s = new char[1];
 	
 	for (long jentry = 0; jentry < nentries; jentry++) {
+		if (jentry % 1000 == 0)
+			std::cout << "Looking at student " << jentry << std::endl;
+		
 		studentTree->GetEntry(jentry);
 		student->Finalize();  // This populates the enrollment.grades stuff which is just references
 		
 		double gpaFullRaw = student->Gpa();  // Standard GPA, all semesters
+		// Percent rank based on raw, overall GPA
 		double pctRankGpaRaw = hAllGpaCdf->Interpolate(gpaFullRaw);
-		// This is % rank based more on the sutdent's actuall course load.  These two should be comparable?
-//		double pctRankGpaCdf = MyFunctions::EvalCdf(student->CombinedCdf(), gpaFullRaw);
-		double pctRankGpaCdf = student->CombinedCdf()->Evaluate(gpaFullRaw);
-//		double pctRankGpaEval = student->CombinedCdf()->Eval(gpaFullRaw);
+		
+		// This is % rank based more on the student's actuall course load.  These two should be comparable?
+		CumulativeDistribution fullCdf = student->CombinedCdf();
+		double pctRankGpaCdf = fullCdf.Evaluate(gpaFullRaw);
 		hDiffRank->Fill(pctRankGpaCdf - pctRankGpaRaw);
 		hDiffRank2D->Fill(pctRankGpaRaw, pctRankGpaCdf);
 		
-//		double predGpaEval = student->CombinedCdfInv()->Eval(pctRankGpaEval);
-		double predGpaEval = student->CombinedCdfInv()->Evaluate(pctRankGpaRaw);
-		double predGpaCdf = student->CombinedCdfInv()->Evaluate(pctRankGpaCdf);
+		// Some predicted GPA values
+		CumulativeDistributionInverse fullCdfInv = student->CombinedCdfInv();
+		double predGpaEval = fullCdfInv.Evaluate(pctRankGpaRaw);
+		double predGpaCdf = fullCdfInv.Evaluate(pctRankGpaCdf);
 		hDiffGpaRaw->Fill(predGpaEval - gpaFullRaw);
 		hDiffGpaCdf->Fill(predGpaCdf - gpaFullRaw);
 		
@@ -182,9 +186,11 @@ void GradePredictionTest(bool scan = false) {
 		if (iPad < 9) {
 			iPad++;
 			c0->cd(iPad)->cd(1);
-			student->CombinedCdf()->Draw("AP");
+			TGraph* graph = (TGraph*)fullCdf.Clone();
+			graph->Draw("AP");
 			c0->cd(iPad)->cd(2);
-			student->CombinedCdfInv()->Draw("AP");
+			graph = (TGraph*)fullCdfInv.Clone();
+			graph->Draw("AP");
 		}
 		
 		// Loop over semesters and calculate different ways of predicting the semester's GPA
@@ -209,38 +215,18 @@ void GradePredictionTest(bool scan = false) {
 			// Use Cumulative Distribution Function methed...
 			std::vector<Student::Grade> gradesThisSemester = student->TermLetterGradeList(term);
 			std::vector<Student::Grade> gradesThisSemesterBar = student->TermLetterGradeList(-term);
-			CumulativeDistribution* cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
+			CumulativeDistribution cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
 			double gpaSemBar = student->Gpa(gradesThisSemesterBar);
 
-			double pctSemBar = cdfSemBar->Evaluate(gpaSemBar);
-			CumulativeDistributionInverse* cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
-//			double gpaSemPredictionCdf = cdfInvSem->Eval(pctSemBar);
-			double gpaSemPredictionCdf = cdfInvSem->Evaluate(pctSemBar);
-			if (scan) {
-				c4->cd(1);
-				cdfSemBar->Draw("AP");
-				TMarker m(gpaSemBar, pctSemBar, 29);
-				m.Draw();
-				TLine l(gpaSemBar, 0., gpaSemBar, pctSemBar);
-				l.Draw();
-				l.DrawLine(0., pctSemBar, gpaSemBar, pctSemBar);
-				c4->cd(2);
-				cdfInvSem->Draw("AP");
-				m.DrawMarker(pctSemBar, gpaSemPredictionCdf);
-				l.DrawLine(0., gpaSemRaw, 1., gpaSemRaw);
-				std::cout << "gpaSmeBar = " << gpaSemBar << ", pctSemBar = " << pctSemBar << ", gpaSemPred = " << gpaSemPredictionCdf << ", gpaSem = " << gpaSemRaw << std::endl;
-				c4->Modified();
-				c4->Update();
-				std::cout << "Next (q to quit):";
-				if (gSystem->ProcessEvents()) return;
-				gets(s);
-				if (s[0] == 'q') return;
-			}
+			double pctSemBar = cdfSemBar.Evaluate(gpaSemBar);
+			CumulativeDistributionInverse cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
+			double gpaSemPredictionCdf = cdfInvSem.Evaluate(pctSemBar);
 			
 			hDeltaGpaBiased->Fill(gpaSemRaw - gpaFullRaw);  // Biased residual
 			hDeltaGpaRaw->Fill(gpaSemRaw - gpaSemBarRaw);   // Unbiased residual
 			hDeltaGpaNormed->Fill(gpaSemRaw - gpaSemPredictionNormed);
 			hDeltaGpaCdf->Fill(gpaSemRaw - gpaSemPredictionCdf);
+			
 			
 			// Now look at seom single course predictive measures
 			for (Student::Grade const& grade : enrollment.grades) {
@@ -258,41 +244,19 @@ void GradePredictionTest(bool scan = false) {
 				double qualityPredictionNormed = student->NormedCoursePrediction(&grade);
 
 				// Try CDF prediction:
-				CumulativeDistribution* cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
-				double pctCourseBar = cdfCourseBar->Evaluate(gpaCourseBar);
+				CumulativeDistribution cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
+				double pctCourseBar = cdfCourseBar.Evaluate(gpaCourseBar);
 				std::vector<Student::Grade> oneCourse;
 				oneCourse.push_back(grade);
-				CumulativeDistributionInverse* cdfInvCourse = student->CombinedCdfInv(oneCourse);
-				double qualityPredictionCdf = cdfInvCourse->Evaluate(pctCourseBar);
+				CumulativeDistributionInverse cdfInvCourse = student->CombinedCdfInv(oneCourse);
+				double qualityPredictionCdf = cdfInvCourse.Evaluate(pctCourseBar);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);
 				hDeltaCourseNormed->Fill(thisQuality - qualityPredictionNormed);
 				hDeltaCourseCdf->Fill(thisQuality - qualityPredictionCdf);
-				
-				if (scan) {
-					c5->cd(1);
-					cdfCourseBar->Draw("AP");
-					TMarker m(gpaCourseBar, pctCourseBar, 29);
-					m.Draw();
-					TLine l(gpaCourseBar, 0., gpaCourseBar, pctCourseBar);
-					l.Draw();
-					l.DrawLine(0., pctCourseBar, gpaCourseBar, pctCourseBar);
-					c5->cd(2);
-					cdfInvCourse->Draw("AP");
-					m.DrawMarker(pctCourseBar, qualityPredictionCdf);
-					l.DrawLine(0., thisQuality, 1., thisQuality);
-					std::cout << "gpaCourseBar = " << gpaCourseBar << ", pctCourseBar = " << pctCourseBar << ", gpaCoursePred = " << qualityPredictionCdf << ", gpaSem = " << thisQuality << std::endl;
-					c5->Modified();
-					c5->Update();
-					std::cout << "Next (q to quit):";
-					if (gSystem->ProcessEvents()) return;
-					gets(s);
-					if (s[0] == 'q') return;
-				}
-			
-				
 			}
+			
 		}
 	}
 	
@@ -343,4 +307,3 @@ void GradePredictionTest(bool scan = false) {
 	
 	return;
 }
-*/

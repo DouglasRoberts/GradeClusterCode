@@ -17,27 +17,22 @@ public:
 	void AddGrade(TString grade);
 	double Average() const;
 	double StdDev() const;
-	int Entries() const {return nEntries;}
+	int Entries() const {return _nEntries;}
 	
-//	void MakeCumulativeDist();
-	
-	GradeHistogram* GradeDistribution() {return gradeDistribution;}
-	
-//	TH1D* CumulativeDist();
+	GradeHistogram* GradeDistribution() {return _gradeDistribution;}
 	
 	CumulativeDistribution* CumulativeGraph();
 	
 	CumulativeDistributionInverse* CumulativeGraphInverse();
 	
 private:
-	int nEntries = 0;
-	double sumQ = 0.;
-	double sumQ2 = 0.;
-	GradeHistogram* gradeDistribution = 0;
-//	TH1D* cumulativeGradeDistribution = 0;
-	CumulativeDistribution* cumulativeGraph = 0;
-	CumulativeDistributionInverse* cumulativeGraphInverse = 0;
-	static int instance;
+	int _nEntries = 0;
+	double _sumQ = 0.;
+	double _sumQ2 = 0.;
+	GradeHistogram* _gradeDistribution = 0;
+	CumulativeDistribution* _cumulativeGraph = 0;
+	CumulativeDistributionInverse* _cumulativeGraphInverse = 0;
+	static int _instance;
 };
 
 #endif

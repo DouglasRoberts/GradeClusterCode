@@ -13,37 +13,6 @@ namespace MyFunctions {
  std::map<std::pair<TString, int>, CourseGradeNormer> gradeNormMap;
 };
 
-/*
-double MyFunctions::EvalCdf(TGraph* cdf, double x) {
-	// Find first point greater than x, then return y of previous point
-	double* X = cdf->GetX();
-	double* Y = cdf->GetY();
-	for (int i = 0; i < cdf->GetN(); ++i) {
-		if (x < X[i])  { 
-			if (i > 0)
-				return Y[i-1];
-			else 
-				assert(0);
-		}
-	}
-	// Should never get here!  (Or should we?  Test is <, not <=)
-//	std::cout << "Shouldn't be here, last point, x = (" << X[cdf->GetN()-1] << ", " << Y[cdf->GetN()-1] << ") : " << x << std::endl;
-	return Y[cdf->GetN()-1];
-	assert(0);
-}
-
-double MyFunctions::EvalInvCdf(TGraph* invCdf, double p) {
-	double* x = invCdf->GetX();
-	double* y = invCdf->GetY();
-	for (int i = 0; i < invCdf->GetN(); ++i) {
-		if (p <= x[i])
-			return y[i];
-//		if (x[i] >= p)
-//			return y[i];
-	}
-	return y[invCdf->GetN() - 1];
-}
-*/
 void MyFunctions::BuildGradeNormMap() {
 	// This function build the gradeNormMap if it isn't already filled
 	if (gradeNormMap.size() > 0) return;  // Already filled

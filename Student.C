@@ -35,37 +35,6 @@ bool Student::ValidEnrollTypes() const {
 	return true;
 }
 
-/*
-double Student::ExpectedGpa(double pctRank) const {
-	double sumCredits = 0.;
-	double sumQpCr = 0.;
-	for (Grade const& grade : _grades) {
-		// Is this a valid grade?
-		if (MyFunctions::ValidGrade(grade.grade)) {
-			// Only count courses that we can find on the normed course map?
-			auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, grade.term));
-			if (thisCourse != MyFunctions::gradeNormMap.end()) {
-				double credits = grade.credits;
-				CumulativeDistribution* cumDist = thisCourse->second.CumulativeGraph();
-				assert(0 != cumDist);
-				double quality = cumDist
-				int expectedBin = cumDist->FindFirstBinAbove(pctRank);
-				TString expectedGrade = cumDist->GetXaxis()->GetBinLabel(expectedBin);
-				sumCredits += credits;
-				sumQpCr += credits*MyFunctions::GradeToQuality(expectedGrade);
-			}
-			else {
-				std::cout << "Course not found in NormMap : " << grade.course << std::endl;
-			}
-		}
-	}
-	if (sumCredits > 0.)
-		return sumQpCr/sumCredits;
-	else
-		return 0.;
-}
-*/
-
 double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude) const {
 	
 	// This will calculate a student's gpa with various options:
@@ -80,14 +49,17 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 	double qualityPoints = 0.;
 	double alpha = 1.;
 	double beta = 0.;
+	
+	int useTerm = 0;
 	for (Grade const& grade : _grades) {
 		if (gradeToExclude != 0 && grade.course == gradeToExclude->course && grade.term == gradeToExclude->term) continue;
 		// Is this a valid grade?
 		if (MyFunctions::ValidGrade(grade.grade)) {
+			if (!_useAllTerms) useTerm = grade.term;
 			if (normed) {
 				alpha = 1.; beta = 0.;  // Default values
-				auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", grade.term));
-				auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, grade.term));
+				auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", useTerm));
+				auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, useTerm));
 				if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
 					double allAvg = allCourses->second.Average();
 					double allStdDev = allCourses->second.StdDev();
@@ -177,12 +149,14 @@ double Student::UnNormedGpa(double normedPrediction, int term, TString courseToE
 	double qualityPoints = 0.;
 	double alpha = 1.;
 	double beta = 0.;
+	int useTerm = 0;
 	for (Grade const& grade : _grades) {
 		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		if (grade.term != term) continue;
 		if (grade.course == courseToExclude) continue;
-		auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", grade.term));
-		auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, grade.term));
+		if (!_useAllTerms) useTerm = grade.term;
+		auto allCourses = MyFunctions::gradeNormMap.find(std::make_pair("AllCourses", useTerm));
+		auto thisCourse = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, useTerm));
 		alpha = 1.; beta = 0.;
 		if (allCourses != MyFunctions::gradeNormMap.end() && thisCourse != MyFunctions::gradeNormMap.end()) {
 			double allAvg = allCourses->second.Average();
@@ -326,91 +300,18 @@ TString Student::EnrollmentType(int term) const {
 	return "UNKN";
 }
 
-/*
-TGraph* Student::CombinedCdf(const std::vector<Student::Grade> grades, bool inverse, const Student::Grade* exclude) const {
-	MyFunctions::BuildGradeNormMap();  // Just in case it wasn't built before.  It should be cached and return right away if it's there.
-	
-	std::vector<std::pair<double, double>> deltas;
-	double totalCredits = 0.;
-	for (auto grade : grades) {
-		if (!MyFunctions::ValidGrade(grade.grade)) continue;
-		if (exclude != 0 && exclude->course == grade.course && exclude->term == grade.term) continue;
-		auto search = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, grade.term));
-		if (search == MyFunctions::gradeNormMap.end()) continue;
-		CourseGradeNormer& cgn = search->second;
-		TGraph* inv = cgn.CumulativeGraphInverse();
-		
-		double yPrev = 0.;
-		int n = inv->GetN();
-		double* x = inv->GetX();
-		double* y = inv->GetY();
-		for (int i = 0; i < n; ++i) {
-			double delY = y[i] - yPrev;
-			delY *= grade.credits;
-			yPrev = y[i];
-			deltas.push_back(std::make_pair(x[i], delY));
-		}
-		totalCredits += grade.credits;
-	}
-	std::sort(deltas.begin(), deltas.end());
-	double yTotal = 0.;
-	std::vector<double> xvals;
-	std::vector<double> yvals;
-//	std::vector<double> errEmpty;
-	std::vector<double> errX;
-	std::vector<double> errY;
-	double xPrev = 0.;
-	for (auto point : deltas) {
-		yTotal += point.second/totalCredits;
-		// Try to clean up the distribution?  There should only be one point at a given x value
-//		if (xPrev >= point.first) {
-//			yvals.back() = yTotal; 
-//		}
-//		else {
-			xvals.push_back(point.first);
-			yvals.push_back(yTotal);
-//		}
-		xPrev = point.first;
-	}
-
-	errX.push_back(0.);
-	for (unsigned long i = 0; i < yvals.size() - 1; ++i) {
-		errX.push_back(xvals[i+1] - xvals[i]);
-		errY.push_back(yvals[i+1] - yvals[i]);
-	}
-	errY.push_back(0.);
-
-	TGraph* retVal = 0;
-	if (inverse) {
-		retVal = new TGraphAsymmErrors(xvals.size(), &xvals[0], &yvals[0], &errX[0]);
-		retVal->SetTitle("Inverse Cumulative Distribution Function;Percentile;GPA");
-	}
-	else {
-		retVal = new TGraphAsymmErrors(xvals.size(), &yvals[0], &xvals[0], 0, &errY[0]);
-		retVal->SetTitle("Cumulative Distribution Function;GPA;Percentile");
-	}
-	retVal->SetMarkerSize(0.5);
-	retVal->SetMarkerStyle(20);
-	retVal->SetMarkerColor(kBlue);
-	return retVal;
-}
-*/
-CumulativeDistribution Student::CombinedCdf(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude) const {
-	CumulativeDistributionInverse inv = CombinedCdfInv(grades, gradeToExclude);
-	CumulativeDistribution retVal = inv.Cdf();
-	return retVal;
-}
-
 CumulativeDistributionInverse Student::CombinedCdfInv(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude) const {
 	MyFunctions::BuildGradeNormMap();  // Just in case it wasn't built before.  It should be cached and return right away if it's there.
 	CumulativeDistributionInverse retVal = CumulativeDistributionInverse();
 	
 	// Just add together the inverse cdfs from list of grades passed.
 	double totalCredits = 0.;
+	int useTerm = 0;
 	for (auto grade : grades) {
 		if (gradeToExclude != 0 && grade.course == gradeToExclude->course && grade.term == gradeToExclude->term) continue;
 		if (!MyFunctions::ValidGrade(grade.grade)) continue;
-		auto search = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, grade.term));
+		if (!_useAllTerms) useTerm = grade.term;
+		auto search = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, useTerm));
 		if (search == MyFunctions::gradeNormMap.end()) continue;
 		CourseGradeNormer& cgn = search->second;
 		retVal.Add(cgn.CumulativeGraphInverse(), grade.credits);

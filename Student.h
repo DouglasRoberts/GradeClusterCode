@@ -2,8 +2,10 @@
 #define STUDENT_H
 
 #include "CumulativeDistribution.h"
+
 #include <TObject.h>
 #include <TString.h>
+
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -56,7 +58,6 @@ public:
 	double NormedGpaPrediction(int term) const;
 	double NormedCoursePrediction(const Student::Grade* gradeToExclude) const;  // Single course prediction, in quality points
 	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "") const;
-//	double ExpectedGpa(double pctRank) const;  // Returns a student's expected GPA based on their overall percent rank.
 	double SemesterGpaWithoutCourse(int term, TString course) const;
 	double CumGpaWithoutCourse(int term, TString course) const;   // Need to include term as argument in case course was repeated.
 	double EarnedCredits() const;
@@ -66,13 +67,15 @@ public:
 	double AvgAttemptedCredits() const;               // This also include S/P grades
 	double DegreeCredits() const;
 	
-	CumulativeDistribution CombinedCdf(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude = 0) const;
-	CumulativeDistribution CombinedCdf() const {return CombinedCdf(_grades);}
-	CumulativeDistribution CombinedCdfWithoutCourse(const Student::Grade* grade) {return CombinedCdf(_grades, grade);}
-
+	// This first one is the real function.  The rest are just different signatures/names that call this
 	CumulativeDistributionInverse CombinedCdfInv(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude = 0) const;
 	CumulativeDistributionInverse CombinedCdfInv() const {return CombinedCdfInv(_grades);}
 	
+	CumulativeDistribution CombinedCdf(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude = 0) const
+		{return CombinedCdfInv(grades, gradeToExclude).Cdf();}
+	CumulativeDistribution CombinedCdf() const {return CombinedCdf(_grades);}
+	CumulativeDistribution CombinedCdfWithoutCourse(const Student::Grade* grade) {return CombinedCdf(_grades, grade);}
+
 	int nDegrees() const {return _degrees.size();}
 	
 	bool ValidEnrollTypes() const;
@@ -96,6 +99,8 @@ private:
 	std::vector<Grade> _grades;
 	std::vector<Enrollment> _enrollments;
 	std::vector<Degree> _degrees;
+	
+	const static bool _useAllTerms = true;
 
 	ClassDef(Student,2)
 };
