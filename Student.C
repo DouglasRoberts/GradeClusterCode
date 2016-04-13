@@ -305,7 +305,7 @@ CumulativeDistributionInverse Student::CombinedCdfInv(const std::vector<Student:
 	CumulativeDistributionInverse retVal = CumulativeDistributionInverse();
 	
 	// Just add together the inverse cdfs from list of grades passed.
-	double totalCredits = 0.;
+	std::vector<std::pair<CumulativeDistributionInverse*, double>> list;
 	int useTerm = 0;
 	for (auto grade : grades) {
 		if (gradeToExclude != 0 && grade.course == gradeToExclude->course && grade.term == gradeToExclude->term) continue;
@@ -314,10 +314,9 @@ CumulativeDistributionInverse Student::CombinedCdfInv(const std::vector<Student:
 		auto search = MyFunctions::gradeNormMap.find(std::make_pair(grade.course, useTerm));
 		if (search == MyFunctions::gradeNormMap.end()) continue;
 		CourseGradeNormer& cgn = search->second;
-		retVal.Add(cgn.CumulativeGraphInverse(), grade.credits);
-		totalCredits += grade.credits;
+		list.push_back(std::make_pair(cgn.CumulativeGraphInverse(), grade.credits));
 	}
-	retVal.Scale(1./totalCredits);
+	retVal.Add(list);
 	
 	return retVal;
 }

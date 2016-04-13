@@ -5,6 +5,7 @@
 #include "MyFunctions.h"
 
 // ROOT includes
+#include <TArrow.h>
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TGraph.h>
@@ -96,6 +97,93 @@ void BasicTest(int entry = 0) {
 		std::cout << "Passed Invertability Test!!!" << std::endl;
 }
 
+void SingleStudent(int studentEntry, int studentTerm) {
+	// This macro just tests various ways of predicting a student's GPA in a semester.
+	
+	std::cout << "About to build GradeNormMap..." << std::endl;
+	MyFunctions::BuildGradeNormMap();
+	
+	// Open File with Student objects.  This is currently created in "HardCourse.C".  Should probably check that it exists?
+	
+	TFile* studentFile = new TFile("Students.root");
+	TTree* studentTree = (TTree*)studentFile->Get("Students");
+	Student* student = 0;
+	studentTree->SetBranchAddress("student", &student);
+	
+	TCanvas* cStudent = new TCanvas("cStudent", "Single Student, One Semester Prediction", 1600, 1200);
+	cStudent->Divide(2,2);
+//	int studentEntry = 1;
+//	int studentTerm = 4;
+
+	studentTree->GetEntry(studentEntry);
+	student->Finalize();  // This populates the enrollment.grades stuff which is just references
+	
+	int enrollCount = 0;
+	for (auto const& enrollment : student->Enrollments()) {
+		++enrollCount;
+		
+		int term = enrollment.term;
+
+		// Only look at Fall and Spring (regular) semesters
+		if (!MyFunctions::regularSemester(term)) continue;
+		
+		// Only look at semesters where student has attempted at least 12 grade credits
+		double attemptedCredits = student->AttemptedCredits(enrollment);
+		if (attemptedCredits < 12.) continue;
+
+		std::cout << "Term = " << term << std::endl;
+		for (Student::Grade const& grade : enrollment.grades) {
+			std::cout << grade.course << "\t" << grade.grade << "\t" << grade.credits << "\t" << std::endl;
+		}
+
+		if (enrollCount != studentTerm) continue; 
+		
+		// Gpa, this term only.  This is what we are trying to predict	
+		double gpaSemRaw = student->Gpa(enrollment.term);
+	
+		std::vector<Student::Grade> gradesThisSemester = student->TermLetterGradeList(term);
+		std::vector<Student::Grade> gradesThisSemesterBar = student->TermLetterGradeList(-term);
+		double gpaSemBar = student->Gpa(gradesThisSemesterBar);
+
+		CumulativeDistribution cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);		
+		double pctSemBar = cdfSemBar.Evaluate(gpaSemBar);
+		CumulativeDistributionInverse cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
+		double gpaSemPredictionCdf = cdfInvSem.Evaluate(pctSemBar);
+		
+		std::cout << "GPA(semester)  = " << gpaSemRaw << std::endl;
+		std::cout << "GPA(semBar)    = " << gpaSemBar << std::endl;
+		std::cout << "GPA(predicted) = " << gpaSemPredictionCdf << std::endl;
+		std::cout << "GPA(overall)   = " << student->Gpa() << std::endl;
+				
+		cStudent->cd(1);
+		TGraph* graph = (TGraph*)student->CombinedCdfInv(gradesThisSemesterBar).Clone();
+		graph->Draw("AP");
+		cStudent->cd(2);
+		graph = (TGraph*)cdfSemBar.Clone();
+		graph->Draw("AP");
+		TArrow arrow(gpaSemBar, graph->GetYaxis()->GetXmin(), gpaSemBar, pctSemBar, 0.005, "|>");
+		arrow.SetLineColor(kBlue);
+		arrow.SetLineWidth(2);
+		arrow.SetAngle(40);
+		TArrow* temp = (TArrow*)arrow.Clone();
+		temp->Draw();
+		temp->DrawArrow(gpaSemBar, pctSemBar, graph->GetXaxis()->GetXmin(), pctSemBar, 0.005, "|>");
+		cStudent->cd(3);
+		graph = (TGraph*)cdfInvSem.Clone();
+		graph->Draw("AP");
+		temp->DrawArrow(pctSemBar, graph->GetYaxis()->GetXmin(), pctSemBar, gpaSemPredictionCdf, 0.005, "|>");
+		temp->DrawArrow(pctSemBar, gpaSemPredictionCdf, graph->GetXaxis()->GetXmin(), gpaSemPredictionCdf, 0.005, "|>");
+		temp->SetLineColor(kRed);
+		temp->DrawArrow(graph->GetXaxis()->GetXmin() + 0.2, gpaSemRaw, graph->GetXaxis()->GetXmin(), gpaSemRaw, 0.005, "|>");
+		cStudent->cd(4);
+		graph = (TGraph*)student->CombinedCdf(gradesThisSemester).Clone();
+		graph->Draw("AP");
+	}
+	
+	
+	
+	
+}
 void GradePredictionTest() {
 	// This macro just tests various ways of predicting a student's GPA in a semester.
 	
@@ -154,6 +242,11 @@ void GradePredictionTest() {
 	for (int i = 1; i <=9; ++i)
 		c0->cd(i)->Divide(1,2);
 		
+	TCanvas* cStudent = new TCanvas("cStudent", "Single Student, One Semester Prediction", 1600, 1200);
+	cStudent->Divide(2,2);
+	int studentEntry = 1;
+	int studentTerm = 4;
+	
 	int iPad = 0;
 	char* s = new char[1];
 	
@@ -193,8 +286,10 @@ void GradePredictionTest() {
 			graph->Draw("AP");
 		}
 		
+		int enrollCount = 0;
 		// Loop over semesters and calculate different ways of predicting the semester's GPA
 		for (auto const& enrollment : student->Enrollments()) {
+			++enrollCount;
 			int term = enrollment.term;
 			// Only look at Fall and Spring (regular) semesters
 			if (!MyFunctions::regularSemester(term)) continue;
@@ -227,6 +322,37 @@ void GradePredictionTest() {
 			hDeltaGpaNormed->Fill(gpaSemRaw - gpaSemPredictionNormed);
 			hDeltaGpaCdf->Fill(gpaSemRaw - gpaSemPredictionCdf);
 			
+			if (gpaSemBarRaw != gpaSemBar)
+				std::cout << "These should be the same: " << gpaSemBarRaw << ", " << gpaSemBar << std::endl;
+			
+			if (jentry == studentEntry && enrollCount == studentTerm) {
+				cStudent->cd(1);
+				TGraph* graph = (TGraph*)student->CombinedCdfInv(gradesThisSemesterBar).Clone();
+				for (auto grade : gradesThisSemesterBar) {
+					std::cout << "Grade: " << grade.course << "\t" << grade.grade << "\t" << grade.term << "\t" << grade.credits << std::endl;
+				}
+				graph->Draw("AP");
+				cStudent->cd(2);
+				graph = (TGraph*)cdfSemBar.Clone();
+				graph->Draw("AP");
+				TArrow arrow(gpaSemBarRaw, 0., gpaSemBarRaw, pctSemBar, 0.005, "|>");
+				arrow.SetLineColor(kBlue);
+				arrow.SetLineWidth(2);
+				arrow.SetAngle(40);
+				TArrow* temp = (TArrow*)arrow.Clone();
+				temp->Draw();
+				temp->DrawArrow(gpaSemBarRaw, pctSemBar, 0., pctSemBar, 0.005, "|>");
+				cStudent->cd(3);
+				graph = (TGraph*)cdfInvSem.Clone();
+				graph->Draw("AP");
+				temp->DrawArrow(pctSemBar, 0., pctSemBar, gpaSemPredictionCdf, 0.005, "|>");
+				temp->DrawArrow(pctSemBar, gpaSemPredictionCdf, 0., gpaSemPredictionCdf, 0.005, "|>");
+				temp->SetLineColor(kRed);
+				temp->DrawArrow(0.2, gpaSemRaw, 0., gpaSemRaw, 0.005, "|>");
+				cStudent->cd(4);
+				graph = (TGraph*)student->CombinedCdf(gradesThisSemester).Clone();
+				graph->Draw("AP");
+			}
 			
 			// Now look at seom single course predictive measures
 			for (Student::Grade const& grade : enrollment.grades) {

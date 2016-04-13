@@ -35,10 +35,7 @@ CumulativeDistribution::CumulativeDistribution(GradeHistogram* hist) {
 		this->SetPoint(i, x[i], y[i]);
 		this->SetPointEXhigh(i, e[i]);
 	}
-	this->SetTitle("Cumulative Grade Distribution;Grade Quality Points;Percentile");
-	this->SetMarkerSize(0.5);
-	this->SetMarkerStyle(20);
-	this->SetMarkerColor(kRed);
+	SetStyle();
 }
 
 CumulativeDistribution::CumulativeDistribution(const CumulativeDistributionInverse* inv) {
@@ -57,13 +54,13 @@ CumulativeDistribution::CumulativeDistribution(const CumulativeDistributionInver
 		else
 			this->SetPointEXhigh(i, Q[i + 1] - Q[i]);
 	}
-	this->SetTitle("Cumulative Grade Distribution;Grade Quality Points;Percentile");
-	this->SetMarkerSize(0.5);
-	this->SetMarkerStyle(20);
-	this->SetMarkerColor(kRed);	
+	SetStyle();
 }
 
 double CumulativeDistribution::Evaluate(double q) const {
+	
+//	return this->Eval(q);
+	
 	// Find first point greater than q, then return p of previous point
 	double* Q = this->GetX();
 	double* P = this->GetY();
@@ -79,6 +76,16 @@ double CumulativeDistribution::Evaluate(double q) const {
 //	std::cout << "Shouldn't be here, last point, x = (" << X[cdf->GetN()-1] << ", " << Y[cdf->GetN()-1] << ") : " << x << std::endl;
 	return Q[this->GetN()-1];
 }
+
+void CumulativeDistribution::SetStyle() {
+	SetTitle("Cumulative Grade Distribution;Grade Quality Points;Percentile");
+	SetMarkerSize(0.5);
+	SetMarkerStyle(20);
+	SetMarkerColor(kRed);
+//	GetXaxis()->SetLimits(0., 4.3);
+//	GetYaxis()->SetLimits(0., 1.0);	
+}
+
 
 CumulativeDistributionInverse::CumulativeDistributionInverse(CumulativeDistribution* cdf) {
 	assert(0 != cdf);
@@ -103,33 +110,72 @@ CumulativeDistributionInverse::CumulativeDistributionInverse() {
 }
 
 void CumulativeDistributionInverse::SetStyle() {
-	this->SetTitle("Inverse Cumulative Distribution;Percentile;Grade Quality Points");
-	this->SetMarkerSize(0.5);
-	this->SetMarkerStyle(20);
-	this->SetMarkerColor(kMagenta);	
+	SetTitle("Inverse Cumulative Distribution;Percentile;Grade Quality Points");
+	SetMarkerSize(0.5);
+	SetMarkerStyle(20);
+	SetMarkerColor(kMagenta);
+//	GetYaxis()->SetLimits(0., 4.3);
+//	GetXaxis()->SetLimits(0., 1.0);	
 }
 
 void CumulativeDistributionInverse::SetErrors() {
-	double* x = this->GetX();
-	this->SetPointEXlow(0, x[0]);
+	double* x = GetX();
+	SetPointEXlow(0, x[0]);
 	for (int i = 1; i < this->GetN(); ++i) {
-		this->SetPointEXlow(i, x[i] - x[i - 1]);
+		SetPointEXlow(i, x[i] - x[i - 1]);
 	}
 }
 
 double CumulativeDistributionInverse::Evaluate(double p) const {
-	double* x = this->GetX();
-	double* y = this->GetY();
-	for (int i = 0; i < this->GetN(); ++i) {
+	
+//	return this->Eval(p);
+	
+	double* x = GetX();
+	double* y = GetY();
+	for (int i = 0; i < GetN(); ++i) {
 		if (p <= x[i])
 			return y[i];
 	}
-	return y[this->GetN() - 1];
+	return y[GetN() - 1];
 }
 
-//void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list) {
-//	assert(this->GetN() == 0);
-//}
+void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list) {
+	assert(this->GetN() == 0);
+	
+	// Iterate over things in list and put them into a vector
+	double scaleTotal = 0.;
+	std::vector<std::pair<double, double>> points;
+	for (auto thing : list) {
+		double* x = thing.first->GetX();
+		int n = thing.first->GetN();
+		double scale = thing.second;
+		scaleTotal += scale;
+		for (int i = 0; i < n; ++i) {
+			points.push_back(std::make_pair(x[i], 0.));
+		}
+	}
+	// Now sort points
+	std::sort(points.begin(), points.end());
+	std::vector<double> newX;
+	std::vector<double> newY;
+	// Iterate again to evaluate
+	for (auto point : points) {
+		double yVal = 0.;
+		for (auto thing : list) {
+			yVal += thing.second*(thing.first->Evaluate(point.first));
+		}
+		newX.push_back(point.first);
+		newY.push_back(yVal);
+	}
+	Set(newX.size());
+	for (unsigned long i = 0; i < newX.size(); ++i) {
+		SetPoint(i, newX[i], newY[i]);
+	}
+	Scale(1./scaleTotal);
+	SetErrors();
+	SetStyle();
+}
+
 void CumulativeDistributionInverse::Add(CumulativeDistributionInverse* other, double scale) {
 	
 	// Adds a cdf^-1 function to this one, multiplied by an optional scale factor

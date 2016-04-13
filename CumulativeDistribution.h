@@ -18,6 +18,7 @@ public:
 	double Evaluate(double q) const;
 	
 private:
+	void SetStyle();
 	
 };
 
@@ -29,6 +30,7 @@ public:
 	double Evaluate(double p) const;
 	
 	void Add(CumulativeDistributionInverse* other, double scale = 1.);  // Add 'other' to this guy
+	void Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list);
 	void Scale(double scale);
 	
 	CumulativeDistribution Cdf() const {return CumulativeDistribution(this);}
