@@ -30,39 +30,6 @@ std::unique_ptr<T> make_unique(Args&&... args)
 	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-/*
-// Light-weight structure for calculating course grade norming information
-class CourseGradeNormer {
-public:
-	
-	void AddGrade(double qualityPoints) {
-		nEntries++;
-		sumQ += qualityPoints;
-		sumQ2 += qualityPoints*qualityPoints;
-	}
-	double Average() const{
-		if (nEntries > 0)
-			return sumQ/nEntries;
-		else
-			return 0.;
-	}
-	double StdDev() const{
-		if (nEntries > 1)
-			return sqrt(sumQ2/nEntries - Average()*Average());
-		else
-			return 0.;
-	}
-	int Entries() const {return nEntries;}
-	
-private:
-	int nEntries = 0;
-	double sumQ = 0.;
-	double sumQ2 = 0.;	
-};
-// Place map containing CourseGradeNormers in global scope (ugly?)
-static std::map<TString, CourseGradeNormer> gradeNormMap;
-*/
-
 struct CourseDelta {
 	static const int minEntries = 10;
 	TString name;
@@ -191,6 +158,7 @@ void CreateStudentObjects() {
 			nGrRecs++;
 			Student::Grade gradeRecord;
 			gradeRecord.grade = row->GetField(4);
+			gradeRecord.quality = MyFunctions::GradeToQuality(gradeRecord.grade);
 			gradeRecord.course = row->GetField(2);
 			gradeRecord.credits = atof(row->GetField(3));
 			gradeRecord.term = atoi(row->GetField(1));
@@ -262,194 +230,6 @@ void CreateStudentObjects() {
 	return;
 }
 
-void GradeNorming() {
-	
-	// Note: this funtionality has been moved to MyFunctions::BuildGradeNormMap.
-	
-	TFile* f = new TFile("Students.root");
-	TTree* studentTree = (TTree*)f->Get("Students");
-	Student* student = 0;
-	studentTree->SetBranchAddress("student", &student);
-	
-	TH1D* allQuality = new TH1D("allQuality", "All Grade Quality Points", 100, 0., 4.5);
-	TH1D* avgQuality = new TH1D("avgQuality", "Averge Grade Quality Point", 100, 0., 4.5);
-	TH1D* stdDevQuality = new TH1D("stDevQuality", "StdDev of Grade Quality", 100, 0., 2.);
-	
-	MyFunctions::BuildGradeNormMap();
-	
-	/*
-	Long64_t nentries = studentTree->GetEntriesFast();
-	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
-		studentTree->GetEntry(jentry);
-		student->Finalize();  // This regenerates the enrollment.grades stuff that doesn't persist
-		//Loop over all terms for this student and accumulate grade distribution info
-		for (auto const& enrollment : student->Enrollments()) {
-			// Only look at Fall and Spring Terms
-			int term = enrollment.term;
-			if (MyFunctions::termName(term) != "Fall" && MyFunctions::termName(term) != "Spring") continue;
-			
-			auto termGrades = student->TermLetterGradeList(enrollment.term);  // Note that this will only pull grades in the F - A+ range
-			for (Student::Grade const& grade : termGrades) {
-				double quality = MyFunctions::GradeToQuality(grade.grade);
-				MyFunctions::gradeNormMap[grade.course].AddGrade(grade.grade);
-				MyFunctions::gradeNormMap["AllCourses"].AddGrade(grade.grade);
-				allQuality->Fill(quality);
-			}
-			
-		}
-		
-	}
-	*/	
-	for (auto const& entry : MyFunctions::gradeNormMap) {
-		if (entry.first == "AllCourses") continue;
-		avgQuality->Fill(entry.second.Average());
-		stdDevQuality->Fill(entry.second.StdDev());
-	}
-	TCanvas* c1 = new TCanvas("GradeNorming", "Grade Norming", 1600, 1200);
-	c1->Divide(2,3);
-	c1->cd(1);
-	MyFunctions::gradeNormMap["MATH002"].CumulativeDistribution()->DrawCopy();
-//	allQuality->DrawCopy();
-	c1->cd(2);
-	MyFunctions::gradeNormMap["MATH002"].CumulativeGraph()->Draw();
-	c1->cd(3);
-	MyFunctions::gradeNormMap["MATH002"].CumulativeGraphInverse()->Draw();
-	c1->cd(4);
-	avgQuality->DrawCopy();
-	c1->cd(5);
-	stdDevQuality->DrawCopy();
-	
-	c1->cd(6);
-	TH1D* tempHist = MyFunctions::gradeNormMap["MATH002"].GradeDistribution();
-	tempHist->DrawCopy();
-	
-	std::cout << "Average, StdDev for AllCourses = " << MyFunctions::gradeNormMap["AllCourses"].Average() << 
-		", " << MyFunctions::gradeNormMap["AllCourses"].StdDev() << std::endl;
-	
-	f->Close();
-	
-	return;
-}
-
-void TestGradeNorming() {
-	
-	if (MyFunctions::gradeNormMap.size() == 0)
-		GradeNorming();
-	
-//	TH1D* tempHist = MyFunctions::gradeNormMap["MATH002"].GradeDistribution();
-//	std::cout << "Grade pointer = " << tempHist << std::endl;
-//	tempHist->DrawCopy();
-	
-//	return;
-	
-	TFile* f = new TFile("Students.root");
-	TTree* studentTree = (TTree*)f->Get("Students");
-	Student* student = 0;
-	studentTree->SetBranchAddress("student", &student);
-	
-	TH1D* rawDeltaGpa = new TH1D("rawDeltaGpa", "Raw #Delta_{GPA}", 100, -4., 4.);
-	TH1D* normedDeltaGpa = new TH1D("normedDeltaGpa", "Normed #Delta_{GPA}", 100, -4., 4.);
-	TH1D* unNormedDeltaGpa = new TH1D("unNormedDeltaGpa", "Un-Normed #Delta_{GPA}", 100, -4., 4.);
-	TH1D* gpaShiftHist = new TH1D("gpaShiftHist", "Normed GPA - Raw GPA", 100, -1., 1.);
-	TH1D* gpaDist = new TH1D("gpaDist", "Distribution of All Student GPAs", 200, 0., 4.3);
-	TH1D* normedGpaDist = new TH1D("normedGpaDist", "Distribution of Normed GPAs", 200, 0., 4.3);
-	
-	Long64_t nentries = studentTree->GetEntriesFast();
-	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
-		studentTree->GetEntry(jentry);
-		student->Finalize();  // This regenerates the enrollment.grades stuff that doesn't persist
-		
-		double rawGpa = student->Gpa();
-		double normedGpa = student->NormedGpa();
-		double gpaShift = normedGpa - rawGpa;
-		gpaShiftHist->Fill(gpaShift);
-		gpaDist->Fill(rawGpa);
-		normedGpaDist->Fill(normedGpa);
-		
-		
-		for (auto const& enrollment : student->Enrollments()) {
-			// Only look at Fall and Spring Terms
-			int term = enrollment.term;
-			if (MyFunctions::termName(term) != "Fall" && MyFunctions::termName(term) != "Spring") continue;
-			// Only look at semesters with at least 12 attempted credits
-			double attemptedCredits = student->AttemptedCredits(term);
-			if (attemptedCredits < 12.) continue;
-			
-			// Raw, un-normed difference between semester and predicted GPA
-			double delGpaRaw = student->Gpa(enrollment.term) - student->Gpa(-enrollment.term);
-			rawDeltaGpa->Fill(delGpaRaw);
-			
-			double normedPrediction = student->NormedGpa(-enrollment.term);
-			double delGpaNormed = student->NormedGpa(enrollment.term) - normedPrediction;
-			normedDeltaGpa->Fill(delGpaNormed);
-			double unNormedPrediction = student->UnNormedGpa(normedPrediction, enrollment.term);
-			unNormedDeltaGpa->Fill(student->Gpa(enrollment.term) - unNormedPrediction);
-			
-		}
-	
-	}
-	
-	TCanvas* c1 = new TCanvas("TestGradeNorming", "Testing Grade Norming", 1600, 1200);
-	c1->Divide(2,2);
-	c1->cd(1);
-	gpaShiftHist->DrawCopy();
-	c1->cd(2);
-	rawDeltaGpa->DrawCopy();
-	c1->cd(3);
-	normedDeltaGpa->DrawCopy();
-	c1->cd(4);
-	unNormedDeltaGpa->DrawCopy();
-	
-	TCanvas* c2 = new TCanvas("TestGradeNorming_2", "Testing Grade Norming", 1600, 1200);
-	c2->Divide(3,2);
-	c2->cd(1);
-	gpaDist->DrawCopy();
-	c2->cd(4);
-	TH1* gpaCumDist = gpaDist->GetCumulative();
-	gpaCumDist->Scale(1./gpaDist->Integral());
-	gpaCumDist->DrawCopy();
-	c2->cd(2);
-	normedGpaDist->DrawCopy();
-	c2->cd(5);
-	TH1* normedGpaCumDist = normedGpaDist->GetCumulative();
-	normedGpaCumDist->Scale(1./normedGpaDist->Integral());
-	normedGpaCumDist->DrawCopy();
-
-	std::cout << "Starting Second Loop..." << std::endl;
-	TH1D* pctShift = new TH1D("pctShift", "Shift in Rank Percentage, Normed - Raw", 100, -0.3, 0.3);
-	TH2D* pct2D = new TH2D("pct2D", "Normed Pct Rank vs. Raw Pct Rank", 100, 0., 1., 100, 0., 1.);
-	TH1D* gpaShift = new TH1D("gpaShift", "Shift in GPA based onupdated Pct Rank", 100, -4., 4.);
-	// Loop over students again to see how their percent rank changes in going from raw GPA to normed GPA
-	for (Long64_t jentry = 0; jentry < nentries; jentry++) {
-		studentTree->GetEntry(jentry);
-		student->Finalize();
-		double rawGpa = student->Gpa();
-		double normedGpa = student->NormedGpa();
-		double rawPct = gpaCumDist->Interpolate(rawGpa);
-		double normedPct = normedGpaCumDist->Interpolate(normedGpa);
-		double expectedGpaFromRaw = student->ExpectedGpa(rawPct);
-//		std::cout << "Raw vs. expected GPA: " << rawGpa << " : " << expectedGpaFromRaw << std::endl;
-		gpaShift->Fill(expectedGpaFromRaw - rawGpa);
-		//Print out some IDs where the shift is large
-		if (fabs(expectedGpaFromRaw - rawGpa) > 1.8) {
-			std::cout << "Large shift (expectd, raw) = " << expectedGpaFromRaw << " : " << rawGpa << ", for student ID = " << student->Id() << std::endl;
-		}
-		pctShift->Fill(normedPct - rawPct);
-		pct2D->Fill(rawPct, normedPct);
-	}
-	c2->cd(3);
-	pct2D->DrawCopy();
-	c2->cd(6);
-	gpaShift->DrawCopy();
-//	TH1D* tempHist = MyFunctions::gradeNormMap["MATH002"].GradeDistribution();
-//	tempHist->DrawCopy();
-//	pctShift->DrawCopy();
-	
-	f->Close();
-	
-	return;
-}
-
 void LookAtStudents(int iterationsMax = 10) {
 	
 	gStyle->SetErrorX(0);
@@ -461,7 +241,7 @@ void LookAtStudents(int iterationsMax = 10) {
 	
 	
 	if (MyFunctions::gradeNormMap.size() == 0)
-		GradeNorming();
+		MyFunctions::BuildGradeNormMap();
 	
 	// Just a quick look at the data in the Students TTree
 	TFile* f = new TFile("Students.root");
@@ -669,7 +449,7 @@ void LookAtStudents(int iterationsMax = 10) {
 			for (auto const& enrollment : student->Enrollments()) {
 				// Only look at Fall and Spring Terms
 				int term = enrollment.term;
-				if (MyFunctions::termName(term) != "Fall" && MyFunctions::termName(term) != "Spring") continue;
+				if (!MyFunctions::regularSemester(term)) continue;
 				// Only look at semesters with at least 12 attempted credits
 				double attemptedCredits = student->AttemptedCredits(term);
 				if (attemptedCredits < 12.) continue;
@@ -912,7 +692,7 @@ void LookAtStudents(int iterationsMax = 10) {
 	canvas1->Modified();
 	canvas1->Update();
 	
-	return;
+//	return;
 	
 //	TCanvas* correlationCanvas = new TCanvas("correlationCanvas", "Course Correlations", 1800, 1200);
 //	correlationCanvas->cd();
@@ -938,10 +718,11 @@ void LookAtStudents(int iterationsMax = 10) {
 //	correlationCanvas->Modified();
 //	correlationCanvas->Update();
 
-	if (gSystem->ProcessEvents()) return;
+//	if (gSystem->ProcessEvents()) return;
 	
 	myBenchmark.Show("HardCourses, Loop 1");
 	
+	/*
 	// Now we have map of course deltas set up and enroll status correction calculated
 	//  Loop over students again...
 //	int iterationsMax = 10;
@@ -1090,6 +871,7 @@ void LookAtStudents(int iterationsMax = 10) {
 		iterations++;
 	
 	} while (iterations < iterationsMax);
+	*/
 	
 	myBenchmark.Show("HardCourses, Loop 2");
 //	return;

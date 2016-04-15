@@ -203,7 +203,7 @@ namespace ROOT {
       ::Student::Enrollment *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(::Student::Enrollment));
       static ::ROOT::TGenericClassInfo 
-         instance("Student::Enrollment", "Student.h", 31,
+         instance("Student::Enrollment", "Student.h", 32,
                   typeid(::Student::Enrollment), DefineBehavior(ptr, ptr),
                   &StudentcLcLEnrollment_Dictionary, isa_proxy, 0,
                   sizeof(::Student::Enrollment) );

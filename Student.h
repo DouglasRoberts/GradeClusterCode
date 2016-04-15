@@ -21,6 +21,7 @@ public:
 	
 	struct Grade {
 		TString grade;
+		double quality;
 		TString course;
 		float credits;
 		int term;

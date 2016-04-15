@@ -7,11 +7,12 @@
 
 int CourseGradeNormer::_instance = 0;
 
-CourseGradeNormer::CourseGradeNormer() {
+CourseGradeNormer::CourseGradeNormer() : _average(0.), _stddev(0.), _goodAvg(false), _goodStd(false) {
 	++_instance;
 	TString title;
 	title.Form("grade_dist_%d", _instance);
 	_gradeDistribution = new GradeHistogram(title, title);
+
 }
 
 void CourseGradeNormer::AddGrade(TString grade) {
@@ -20,20 +21,31 @@ void CourseGradeNormer::AddGrade(TString grade) {
 	_sumQ += qualityPoints;
 	_sumQ2 += qualityPoints*qualityPoints;
 	_gradeDistribution->Fill(grade, 1.);
+	_goodAvg = false;
+	_goodStd = false;
 }
 
 double CourseGradeNormer::Average() const {
-	if (_nEntries > 0)
-		return _sumQ/_nEntries;
-	else
-		return 0.;
+	if (!_goodAvg) {
+		if (_nEntries > 0)
+			_average = _sumQ/_nEntries;
+		else
+			_average = 0.;
+
+		_goodAvg = true;
+	}
+	return _average;
 }
 
 double CourseGradeNormer::StdDev() const {
-	if (_nEntries > 1)
-		return sqrt(_sumQ2/_nEntries - Average()*Average());
-	else
-		return 0.;
+	if (!_goodStd) {
+		if (_nEntries > 1)
+			_stddev = sqrt(_sumQ2/_nEntries - Average()*Average());
+		else
+			_stddev = 0.;
+		_goodStd = true;
+	}
+	return _stddev;
 }
 
 CumulativeDistribution* CourseGradeNormer::CumulativeGraph() {

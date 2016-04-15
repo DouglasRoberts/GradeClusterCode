@@ -54,7 +54,8 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 	for (Grade const& grade : _grades) {
 		if (gradeToExclude != 0 && grade.course == gradeToExclude->course && grade.term == gradeToExclude->term) continue;
 		// Is this a valid grade?
-		if (MyFunctions::ValidGrade(grade.grade)) {
+		if (grade.quality > -0.5) {
+//		if (MyFunctions::ValidGrade(grade.grade)) {
 			if (!_useAllTerms) useTerm = grade.term;
 			if (normed) {
 				alpha = 1.; beta = 0.;  // Default values
@@ -73,15 +74,15 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 			}
 			if (term == 0) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);
+				qualityPoints += grade.credits*(alpha*grade.quality + beta);
 			}
 			else if (grade.term == term) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);				
+				qualityPoints += grade.credits*(alpha*grade.quality + beta);				
 			}
 			else if (term < 0 && grade.term != -term) {
 				creditsAttempted += grade.credits;
-				qualityPoints += grade.credits*(alpha*MyFunctions::GradeToQuality(grade.grade, grade.term) + beta);								
+				qualityPoints += grade.credits*(alpha*grade.quality + beta);								
 			}
 		}
 	}
@@ -96,9 +97,10 @@ double Student::Gpa(const std::vector<Student::Grade> grades) const {
 	double creditsAttempted = 0.;
 	double qualityPoints = 0.;
 	for (auto grade : grades) {
-		if (!MyFunctions::ValidGrade(grade.grade)) continue;
+		if (grade.quality < -0.5) continue;
+//		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		creditsAttempted += grade.credits;
-		qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+		qualityPoints += grade.credits*grade.quality;
 	}
 	if(creditsAttempted > 0.)
 		return qualityPoints/creditsAttempted;
@@ -189,7 +191,7 @@ double Student::SemesterGpaWithoutCourse(int term, TString course) const {
 		if (grade.course == course) continue;
 		
 		creditsAttempted += grade.credits;
-		qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+		qualityPoints += grade.credits*grade.quality;
 	}
 	
 	if (creditsAttempted > 0)
@@ -205,7 +207,7 @@ double Student::CumGpaWithoutCourse(int term, TString course) const {
 		if (!MyFunctions::ValidGrade(grade.grade)) continue;
 		if (grade.course == course && grade.term == term) continue;
 		creditsAttempted += grade.credits;
-		qualityPoints += grade.credits*MyFunctions::GradeToQuality(grade.grade, grade.term);
+		qualityPoints += grade.credits*grade.quality;
 	}
 	if (creditsAttempted > 0.)
 		return qualityPoints/creditsAttempted;

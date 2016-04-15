@@ -33,6 +33,10 @@ private:
 	CumulativeDistribution* _cumulativeGraph = 0;
 	CumulativeDistributionInverse* _cumulativeGraphInverse = 0;
 	static int _instance;
+	mutable double _average;
+	mutable double _stddev;
+	mutable bool _goodAvg;
+	mutable bool _goodStd;
 };
 
 #endif

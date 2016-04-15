@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <unordered_map>
 
 namespace MyFunctions {
 // std::map<TString, CourseGradeNormer> gradeNormMap;
@@ -47,7 +48,14 @@ void MyFunctions::BuildGradeNormMap() {
 }
 
 bool MyFunctions::ValidGrade(TString grade) {
-	return GradeToQuality(grade) > -0.5;
+	// Try to speen this up?
+	return (
+		(grade == "A+") || (grade == "A") || (grade == "A-") ||
+		(grade == "B+") || (grade == "B") || (grade == "B-") ||
+		(grade == "C+") || (grade == "C") || (grade == "C-") ||
+		(grade == "D+") || (grade == "D") || (grade == "D-") ||
+		(grade == "F")
+			);				
 }
 
 bool MyFunctions::ValidGradeAny(TString grade) {
@@ -56,11 +64,10 @@ bool MyFunctions::ValidGradeAny(TString grade) {
 
 double MyFunctions::GradeToQuality(TString grade, int term) {
 	
-	double retVal = -1.;
+	if (!ValidGrade(grade)) return -1.;
 	
 //	static const int firstNewTerm = 201208;   // This is the actual term where plus/minus grades counted in GPA calc
 	static const int firstNewTerm = 180008;   // This disables using non-plus/minus grade quality points
-	
 	
 	// NOTE: I've modified this to count A+ as 4.3 !!!!!!!!  Campus actually uses A+ = 4.0
 	static std::map<TString, double> const gradesOld = {
@@ -77,21 +84,10 @@ double MyFunctions::GradeToQuality(TString grade, int term) {
 		{"A-", 3.7}, {"A", 4.0}, {"A+", 4.3}};
 		
 	if (term >= firstNewTerm) {
-		try {
-			return gradesNew.at(grade);
-		}
-		catch (const std::out_of_range& e)
-		{
-			return retVal;
-		}
+		return gradesNew.at(grade);
 	}
 	else {
-		try {
-			return gradesOld.at(grade);
-		}
-		catch (const std::out_of_range& e) {
-			return retVal;
-		}
+		return gradesOld.at(grade);
 	}
 }
 
