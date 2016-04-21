@@ -10,7 +10,7 @@
 
 ClassImp(Student)
 	
-//
+	
 void Student::Finalize() {
 	for (auto &enrollment : _enrollments) {
 		for (auto &grade : _grades) {
@@ -18,7 +18,6 @@ void Student::Finalize() {
 				enrollment.grades.push_back(grade);
 		}
 	}
-	return;
 } 
 
 bool Student::ValidEnrollTypes() const {
@@ -92,7 +91,7 @@ double Student::Gpa(int term, bool normed, const Student::Grade* gradeToExclude)
 		return 0.;
 }
 
-double Student::Gpa(const std::vector<Student::Grade> grades) const {
+double Student::Gpa(const GradeVector grades) const {
 	// Calculate GPA (raw) from a list of grade objects.  This will use all of them (if they are valid grades).
 	double creditsAttempted = 0.;
 	double qualityPoints = 0.;
@@ -108,8 +107,8 @@ double Student::Gpa(const std::vector<Student::Grade> grades) const {
 		return 0.;
 }
 
-std::vector<Student::Grade> Student::TermLetterGradeList(int term) const {
-	std::vector<Student::Grade> retVal;
+Student::GradeVector Student::TermLetterGradeList(int term) const {
+	GradeVector retVal;
 	for (auto const& grade : _grades) {
 		// Find valid posted grades corresponding to the passed term
 		// If term is negative, return all valid grades that aren't from this term
@@ -302,7 +301,7 @@ TString Student::EnrollmentType(int term) const {
 	return "UNKN";
 }
 
-CumulativeDistributionInverse Student::CombinedCdfInv(const std::vector<Student::Grade> grades, const Student::Grade* gradeToExclude) const {
+CumulativeDistributionInverse Student::CombinedCdfInv(const GradeVector grades, const Student::Grade* gradeToExclude) const {
 	MyFunctions::BuildGradeNormMap();  // Just in case it wasn't built before.  It should be cached and return right away if it's there.
 	CumulativeDistributionInverse retVal = CumulativeDistributionInverse();
 	
@@ -320,5 +319,65 @@ CumulativeDistributionInverse Student::CombinedCdfInv(const std::vector<Student:
 	}
 	retVal.Add(list);
 	
+	return retVal;
+}
+
+double Student::CourseGradePrediction(Student::Grade grade, PredictionMethod method) const {
+	
+	switch (method)
+	{
+		case RAW:
+		// Predicted grade is just overall GPA without this course (unbiased)
+		return Gpa(0, false, &grade);
+		
+		case NORMED:
+		return NormedCoursePrediction(&grade);
+		
+		case DISTRIBUTION:
+		CumulativeDistribution cdf = CombinedCdfWithoutCourse(&grade);
+		double unbiasedGpa = CourseGradePrediction(grade, RAW);
+		double effectivePct = cdf.Evaluate(unbiasedGpa);
+		GradeVector oneClass;
+		oneClass.push_back(grade);
+		CumulativeDistributionInverse invCdfCourse = CombinedCdfInv(oneClass);
+		return invCdfCourse.Evaluate(effectivePct);
+	}	
+}
+
+double Student::TermGpaPrediction(int term, PredictionMethod method) const {
+
+	switch (method)
+	{
+		case RAW:
+		// Predicted semester GPA is just overall GPA without this term (unbiased)
+		return Gpa(-term, false);
+		
+		case NORMED:
+		return NormedGpaPrediction(term);
+		
+		case DISTRIBUTION:
+		// Find student's effective % rank, excluding this term, based on the rest of their terms' CDFs...
+		GradeVector useThese = termGrades(-term);
+		CumulativeDistribution cdf = CombinedCdf(useThese);
+		double unbiasedGpa = Gpa(useThese);
+		double effectivePct = cdf.Evaluate(unbiasedGpa);
+		CumulativeDistributionInverse invCdfTerm = CombinedCdfInv(termGrades(term));
+		return invCdfTerm.Evaluate(effectivePct);		
+	}
+}
+
+Student::GradeVector Student::termGrades(int term) const {
+	GradeVector retVal;
+	for (auto const& enrollment : _enrollments) {
+		if (term > 0) {
+			if (enrollment.term != term) continue;
+		}
+		else if (term < 0) {
+			if (enrollment.term == -term) continue;
+		}
+		for (Student::Grade grade : enrollment.grades)
+			retVal.push_back(grade);
+		
+	}
 	return retVal;
 }

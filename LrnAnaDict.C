@@ -469,7 +469,7 @@ void Student::Streamer(TBuffer &R__b)
       R__b >> _id;
       R__b >> _firstTerm;
       {
-         vector<Student::Grade> &R__stl =  _grades;
+         Student::GradeVector &R__stl =  _grades;
          R__stl.clear();
          TClass *R__tcl1 = TBuffer::GetClass(typeid(struct Student::Grade));
          if (R__tcl1==0) {
@@ -526,7 +526,7 @@ void Student::Streamer(TBuffer &R__b)
       R__b << _id;
       R__b << _firstTerm;
       {
-         vector<Student::Grade> &R__stl =  _grades;
+         Student::GradeVector &R__stl =  _grades;
          int R__n=int(R__stl.size());
          R__b << R__n;
          if(R__n) {
@@ -535,7 +535,7 @@ void Student::Streamer(TBuffer &R__b)
             Error("_grades streamer","Missing the TClass object for struct Student::Grade!");
             return;
          }
-            vector<Student::Grade>::iterator R__k;
+            Student::GradeVector::iterator R__k;
             for (R__k = R__stl.begin(); R__k != R__stl.end(); ++R__k) {
             R__b.StreamObject((Student::Grade*)&(*R__k),R__tcl1);
             }

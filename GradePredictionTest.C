@@ -302,31 +302,28 @@ void GradePredictionTest() {
 			double gpaSemRaw = student->Gpa(enrollment.term);
 			
 			// Standard GPA without this term
-			double gpaSemBarRaw = student->Gpa(-enrollment.term);
+			double gpaSemBarRaw = student->TermGpaPrediction(term, Student::RAW);
 			
 			// Semester prediction based on simple course (mean, sigma) normalizing
-			double gpaSemPredictionNormed = student->NormedGpaPrediction(term);
+			double gpaSemPredictionNormed = student->TermGpaPrediction(term, Student::NORMED);
 			
 			// Use Cumulative Distribution Function methed...
-			std::vector<Student::Grade> gradesThisSemester = student->TermLetterGradeList(term);
-			std::vector<Student::Grade> gradesThisSemesterBar = student->TermLetterGradeList(-term);
-			CumulativeDistribution cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
-			double gpaSemBar = student->Gpa(gradesThisSemesterBar);
-
-			double pctSemBar = cdfSemBar.Evaluate(gpaSemBar);
-			CumulativeDistributionInverse cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
-			double gpaSemPredictionCdf = cdfInvSem.Evaluate(pctSemBar);
+			double gpaSemPredictionCdf = student->TermGpaPrediction(term, Student::DISTRIBUTION);
 			
 			hDeltaGpaBiased->Fill(gpaSemRaw - gpaFullRaw);  // Biased residual
 			hDeltaGpaRaw->Fill(gpaSemRaw - gpaSemBarRaw);   // Unbiased residual
 			hDeltaGpaNormed->Fill(gpaSemRaw - gpaSemPredictionNormed);
 			hDeltaGpaCdf->Fill(gpaSemRaw - gpaSemPredictionCdf);
-			
-			if (gpaSemBarRaw != gpaSemBar)
-				std::cout << "These should be the same: " << gpaSemBarRaw << ", " << gpaSemBar << std::endl;
-			
+						
 			if (jentry == studentEntry && enrollCount == studentTerm) {
-				cStudent->cd(1);
+				Student::GradeVector gradesThisSemester = student->TermLetterGradeList(term);
+				Student::GradeVector gradesThisSemesterBar = student->TermLetterGradeList(-term);
+				CumulativeDistribution cdfSemBar = student->CombinedCdf(gradesThisSemesterBar);
+				double gpaSemBar = student->Gpa(gradesThisSemesterBar);
+				double pctSemBar = cdfSemBar.Evaluate(gpaSemBar);
+				CumulativeDistributionInverse cdfInvSem = student->CombinedCdfInv(gradesThisSemester);
+
+				cStudent->cd(1);				
 				TGraph* graph = (TGraph*)student->CombinedCdfInv(gradesThisSemesterBar).Clone();
 				for (auto grade : gradesThisSemesterBar) {
 					std::cout << "Grade: " << grade.course << "\t" << grade.grade << "\t" << grade.term << "\t" << grade.credits << std::endl;
@@ -354,7 +351,7 @@ void GradePredictionTest() {
 				graph->Draw("AP");
 			}
 			
-			// Now look at seom single course predictive measures
+			// Now look at some single course predictive measures
 			for (Student::Grade const& grade : enrollment.grades) {
 				if (!MyFunctions::ValidGrade(grade.grade)) continue;
 	
@@ -364,18 +361,13 @@ void GradePredictionTest() {
 				double thisQuality = MyFunctions::GradeToQuality(grade.grade);
 				
 				// Standard cumulative GPA without this course
-				double gpaCourseBar = student->CumGpaWithoutCourse(grade.term, grade.course);
+				double gpaCourseBar = student->CourseGradePrediction(grade, Student::RAW);
 				
 				// Single course prediction based on simple course normalizing
-				double qualityPredictionNormed = student->NormedCoursePrediction(&grade);
+				double qualityPredictionNormed = student->CourseGradePrediction(grade, Student::NORMED);
 
 				// Try CDF prediction:
-				CumulativeDistribution cdfCourseBar = student->CombinedCdfWithoutCourse(&grade);
-				double pctCourseBar = cdfCourseBar.Evaluate(gpaCourseBar);
-				std::vector<Student::Grade> oneCourse;
-				oneCourse.push_back(grade);
-				CumulativeDistributionInverse cdfInvCourse = student->CombinedCdfInv(oneCourse);
-				double qualityPredictionCdf = cdfInvCourse.Evaluate(pctCourseBar);
+				double qualityPredictionCdf = student->CourseGradePrediction(grade, Student::DISTRIBUTION);
 				
 				hDeltaCourseBiased->Fill(thisQuality - gpaFullRaw);
 				hDeltaCourseRaw->Fill(thisQuality - gpaCourseBar);

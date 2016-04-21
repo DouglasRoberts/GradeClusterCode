@@ -18,6 +18,7 @@ LRNANASO = libLrnAna.$(DllSuf)
 LRNANALIB = $(LRNANASO)
 
 CPPFLAGS += -Wno-unused-parameter
+CPPFLAGS += -g
 
 $(LRNANASO): $(LRNANAO)
 	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(EXPLLINKLIBS)

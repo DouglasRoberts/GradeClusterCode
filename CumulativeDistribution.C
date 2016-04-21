@@ -128,15 +128,14 @@ void CumulativeDistributionInverse::SetErrors() {
 
 double CumulativeDistributionInverse::Evaluate(double p) const {
 	
-//	return this->Eval(p);
-	
 	double* x = GetX();
 	double* y = GetY();
-	for (int i = 0; i < GetN(); ++i) {
+	int n = GetN();
+	for (int i = 0; i < n; ++i) {
 		if (p <= x[i])
 			return y[i];
 	}
-	return y[GetN() - 1];
+	return y[n - 1];
 }
 
 void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list) {
@@ -144,27 +143,33 @@ void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistribu
 	
 	// Iterate over things in list and put them into a vector
 	double scaleTotal = 0.;
-	std::vector<std::pair<double, double>> points;
+//	std::vector<std::pair<double, double>> points;
+	std::vector<double> newX;
+	std::vector<double> newY;
 	for (auto thing : list) {
 		double* x = thing.first->GetX();
 		int n = thing.first->GetN();
 		double scale = thing.second;
 		scaleTotal += scale;
 		for (int i = 0; i < n; ++i) {
-			points.push_back(std::make_pair(x[i], 0.));
+			newX.push_back(x[i]);
+//			points.push_back(std::make_pair(x[i], 0.));
 		}
 	}
 	// Now sort points
-	std::sort(points.begin(), points.end());
-	std::vector<double> newX;
-	std::vector<double> newY;
+	std::sort(newX.begin(), newX.end());
+//	std::sort(points.begin(), points.end());
 	// Iterate again to evaluate
-	for (auto point : points) {
+	for (double x : newX) {
+//	for (auto point : points) {
 		double yVal = 0.;
 		for (auto thing : list) {
-			yVal += thing.second*(thing.first->Evaluate(point.first));
+			double val = thing.first->Evaluate(x);
+			val *= thing.second;
+			yVal += val;
+//			yVal += thing.second*(thing.first->Evaluate(point.first));
 		}
-		newX.push_back(point.first);
+//		newX.push_back(point.first);
 		newY.push_back(yVal);
 	}
 	Set(newX.size());
