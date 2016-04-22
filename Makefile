@@ -64,5 +64,5 @@ test:
 
 clean::
 	rm -f *.o *~ \#*
-	@rm -f $(MYOBJECTS) core
+	@rm -f $(MYOBJECTS) *.d *.$(DllSuf) core
 

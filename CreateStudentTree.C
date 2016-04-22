@@ -117,8 +117,7 @@ void CreateStudentTree() {
 	}
 	std::cout << "Number of course grades found = " << nGrRecs << std::endl;
 	delete res;
-	/*
-*/
+
 	// Write Student list out to a ROOT file for safe keeping...
 	TFile* fOut = new TFile("Students.root", "RECREATE");
 	TTree* studentTree = new TTree("Students", "Student Information Tree");
@@ -126,44 +125,16 @@ void CreateStudentTree() {
 	Student* student = 0;
 	studentTree->Branch("student", &student);
 	
-	student = new Student(666, 199908);
-	Student::Grade blat;
-	blat.course = "PHYS666";
-	blat.grade = "F-";
-	blat.quality = 5.;
-	blat.credits = 2.;
-	blat.term = 200008;
-	student->AddGrade(blat);
-	std::cout << "Student ID = " << student->Id() << std::endl;
-	for (auto grade : student->Grades()) {
-		std::cout << grade.course << " : " << grade.grade << ", " << grade.quality << std::endl;
-	}
-//	studentTree->Fill();
-	
-	student = students[100055];
-	std::cout << "Student ID = " << student->Id() << std::endl;
-	for (auto grade : student->Grades()) {
-		std::cout << grade.course << " : " << grade.grade << ", " << grade.quality << std::endl;
-	}
-//	student = students.begin()->second;
-//	studentTree->Fill();
-	
-	
 	int nPrinted = 0;
 	int nWeirdEnrollTypes = 0;
 	for (auto entry : students) {
-//	for (it_type entry = students.begin(); entry != students.end(); entry++) {
-		std::cout << "Student ID number = " << entry.second->Id() << std::endl;
-//		student = *(entry->second);
 		student = entry.second;
 		// Should we filter out some students?  It looks like there are some records where the number of credits earned
 		// and degree info doesn't really jive...
 		cumCreditsHist->Fill(student->DegreeCredits());
-		std::cout << "1" << std::endl;
 		if (student->nDegrees() == 0) {
 			std::cout << "Found a student without a degree!!! " << student->DegreeCredits() << std::endl; 
 		}
-		std::cout << "2" << std::endl;
 		if (student->DegreeCredits() < 120.) {
 			if (nPrinted < 0) {
 				std::cout << "Less than 120 credits: " << student->Id() << ", " << student->DegreeCredits() << std::endl;
@@ -175,7 +146,6 @@ void CreateStudentTree() {
 			}
 			continue;
 		}
-		std::cout << "3" << std::endl;
 		if (!student->ValidEnrollTypes()) {
 			if (nPrinted < 0) {
 				std::cout << "Weird Enroll Types: " << student->Id() << ", " << student->DegreeCredits() << std::endl;
@@ -188,20 +158,13 @@ void CreateStudentTree() {
 			nWeirdEnrollTypes++;
 			continue;
 		}
-		std::cout << "4" << std::endl;
 		// Check for students with grades for a semester but no enrollment record.  Just toss them?
 		bool goodStudent = true;
 		for (Student::Grade grade : student->Grades()) {
 			if (student->EnrollmentType(grade.term) == "UNKN") goodStudent = false;
 		}
 		if (!goodStudent) continue;
-//		student.Finalize();
-//		if (student.EarnedCredits() >= 80)
-		std::cout << "5" << std::endl;
 		studentTree->Fill();
-		std::cout << "6" << std::endl;
-//		else
-//			std::cout << "Student with less than 80 earned credits : " << student.Id() << std::endl;
 	}
 	
 	std::cout << "Found a total of " << nWeirdEnrollTypes << " weird enrollment types" << std::endl;
