@@ -14,6 +14,7 @@ ClassImp(Student)
 void Student::Finalize() {
 	for (auto &enrollment : _enrollments) {
 		for (auto &grade : _grades) {
+//			std::cout << "Grade = " << grade.grade << ", Term = " << enrollment.term << std::endl;
 			if (grade.term == enrollment.term)
 				enrollment.grades.push_back(grade);
 		}
@@ -334,12 +335,16 @@ double Student::CourseGradePrediction(Student::Grade grade, PredictionMethod met
 		return NormedCoursePrediction(&grade);
 		
 		case DISTRIBUTION:
+//		std::cout << "3" << std::endl;
 		CumulativeDistribution cdf = CombinedCdfWithoutCourse(&grade);
+//		std::cout << "4" << std::endl;
 		double unbiasedGpa = CourseGradePrediction(grade, RAW);
 		double effectivePct = cdf.Evaluate(unbiasedGpa);
+//		std::cout << "5" << std::endl;
 		GradeVector oneClass;
 		oneClass.push_back(grade);
 		CumulativeDistributionInverse invCdfCourse = CombinedCdfInv(oneClass);
+//		std::cout << "6" << std::endl;
 		return invCdfCourse.Evaluate(effectivePct);
 	}	
 }

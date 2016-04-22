@@ -4,6 +4,7 @@
 #include "MyFunctions.h"
 
 #include <cassert>
+#include <iostream>
 
 CumulativeDistribution::CumulativeDistribution(GradeHistogram* hist) {
 	assert(0 != hist);
@@ -141,6 +142,7 @@ double CumulativeDistributionInverse::Evaluate(double p) const {
 void CumulativeDistributionInverse::Add(std::vector<std::pair<CumulativeDistributionInverse*, double>> list) {
 	assert(this->GetN() == 0);
 	
+//	std::cout << "Entered add..." << std::endl;
 	// Iterate over things in list and put them into a vector
 	double scaleTotal = 0.;
 //	std::vector<std::pair<double, double>> points;

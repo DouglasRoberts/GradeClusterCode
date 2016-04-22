@@ -15,6 +15,6 @@
 #pragma link C++ class std::vector<SectionInfo>;
 #pragma link C++ class std::vector<Student::Enrollment>;
 #pragma link C++ class std::vector<Student::Grade>;
-#pragma link C++ class sstd::vector<std::reference_wrapper<Student::Grade>>;
+//#pragma link C++ class std::vector<std::reference_wrapper<Student::Grade>>;
 
 #endif

@@ -116,6 +116,6 @@ private:
 	double NormedCoursePrediction(const Student::Grade* gradeToExclude) const;  // Single course prediction, in quality points
 	double UnNormedGpa(double normedPrediction, int term, TString courseToExclude = "") const;
 
-	ClassDef(Student,2)
+	ClassDef(Student,3)
 };
 #endif

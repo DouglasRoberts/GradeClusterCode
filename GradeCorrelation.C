@@ -3,8 +3,10 @@
 
 #include <TBenchmark.h>
 #include <TCanvas.h>
+#include <TF1.h>
 #include <TFile.h>
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TMath.h>
 #include <TString.h>
 #include <TTree.h>
@@ -52,8 +54,12 @@ public:
 	double p() const {
 		if (_n < 2) 
 			return -1.;
-		else
-			return TMath::StudentI(r(), _n - 2);
+		else {
+			double rho = r();
+			if (1. - rho*rho <= 0.) return -2.;
+			double tstar = rho*sqrt(_n - 2)/sqrt(1. - rho*rho);
+			return TMath::StudentI(tstar, _n - 2);
+		}
 	}
 	
 	int n() const {return _n;}
@@ -69,12 +75,13 @@ private:
 
 bool sortFunc(std::pair<std::pair<TString, TString>, CorrelationCalculator> first, 
 				std::pair<std::pair<TString, TString>, CorrelationCalculator> second) {
-	return first.second.r() > second.second.r();
+	return first.second.p() > second.second.p();
 }
 
 
-void GradeCorrelation(double prob = 0.25, int nCut = 500) {
+void GradeCorrelation(double prob = 0.10, int nCut = 50) {
 	
+	std::cout << "Starting Grade Correlation..." << std::endl;
 	TBenchmark* myBenchmark = new TBenchmark();
 	
 	myBenchmark->Start("NormMap");
@@ -82,6 +89,8 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 	if (MyFunctions::gradeNormMap.size() == 0)
 		MyFunctions::BuildGradeNormMap();
 	myBenchmark->Stop("NormMap");
+	
+	std::cout << "Made GradeNormMap..." << std::endl;
 	
 	// Just a quick look at the data in the Students TTree
 	TFile* f = new TFile("Students.root");
@@ -98,14 +107,18 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 	
 	std::map<std::pair<TString, TString>, CorrelationCalculator> corrMap;
 	
-	nentries = 1000;
+//	nentries = 1000;
 	
 	myBenchmark->Start("Main Loop");
 	int nPairAll = 0;
 	for (Long64_t jentry = 0; jentry < nentries; ++jentry) {
 		studentTree->GetEntry(jentry);
+		if (jentry % 1000 == 0)
+			std::cout << "At student " << jentry << std::endl;
+//		std::cout << "Looking at student " << student->Id() << std::endl;
 		student->Finalize();  // Regenerates non-persisted references
 		int nTerms = student->Enrollments().size();
+//		std::cout << "nTerms = " << nTerms << std::endl;
 		
 		for (int iTerm = 0; iTerm < nTerms - 1; ++iTerm) {
 			const Student::Enrollment iEnrollment = student->Enrollments()[iTerm];
@@ -113,7 +126,9 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 			for (Student::Grade iGrade : iEnrollment.grades) {
 				if (!MyFunctions::ValidGrade(iGrade.grade)) continue;
 				// Get a prediction for this grade using norm-corrected grades
+//				std::cout << "1" << std::endl;
 				double prediction_i = student->CourseGradePrediction(iGrade, Student::DISTRIBUTION);
+//				std::cout << "2" << std::endl;
 				double delta_i = iGrade.quality - prediction_i;
 			
 				// Find next regular term only
@@ -143,18 +158,19 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 	std::cout << "nPairAll     = " << nPairAll << std::endl;
 	std::cout << "Unique Pairs = " << corrMap.size() << std::endl;
 	
-	TH1D* rHist = new TH1D("rHist", "Correlation Coefficient", 120, -1.2, 1.2);
+	TH1D* rHist = new TH1D("rHist", "Correlation Coefficient, #rho", 120, -1.2, 1.2);
 	TH1D* pHist = new TH1D("pHist", "Probablity Distribution", 100, 0., 1.);
-	TH1D* nHist = new TH1D("nHist", "Number of entries", 100, 0., 10000.);
+	TH1D* nHist = new TH1D("nHist", "Number of entries", 100, 0., 2000.);
+	TH2D* pVrHist = new TH2D("pVrHist", "Prob vs. #rho", 100, -1., 1., 100, 0., 1.);
 	
 	myBenchmark->Start("Prune");
-	double probCut = 0.5 - prob;
 	for (auto iter = corrMap.begin(); iter != corrMap.end();) {
 		if (iter->second.n() < nCut) {
 			corrMap.erase(iter++);
 			continue;
 		}
 		double p = iter->second.p();
+		double r = iter->second.r();
 
 		// Test for nan?
 		if (p != p) {
@@ -166,10 +182,11 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 			corrMap.erase(iter++);
 			continue;
 		}
-		rHist->Fill(iter->second.r());
+		rHist->Fill(r);
 		pHist->Fill(p);
 		nHist->Fill(iter->second.n());
-		if ((fabs(p - 0.5) < probCut)) {
+		pVrHist->Fill(r, p);
+		if (p < 1. - prob && p > prob) {
 			corrMap.erase(iter++);
 		}
 		else {
@@ -185,19 +202,30 @@ void GradeCorrelation(double prob = 0.25, int nCut = 500) {
 	std::sort(corrVec.begin(), corrVec.end(), &sortFunc);
 	myBenchmark->Stop("Sort");
 	
+	int printTop = 50;
+	int printed = 0;
 	for (auto const& entry : corrVec) {
 		std::cout << entry.first.first << " : " << entry.first.second << "\t, n = " << entry.second.n() << "\t, r = " << entry.second.r() 
 			<< "\t, p = " << entry.second.p() << std::endl;
+		++printed;
+		if (printed >= printTop) break;
 	}
 
 	TCanvas* c1 = new TCanvas("c1", "Grade Correlation", 1600, 1200);
 	c1->Divide(2,2);
 	c1->cd(1);
+	TF1* myGaus = new TF1("myGaus", "gaus", -1., 1.);
+	myGaus->SetParameters(600., 0., 0.2);
+	myGaus->FixParameter(1, 0.);
+	rHist->Fit(myGaus, "0B", "", -1., 0.);
 	rHist->DrawCopy();
+	myGaus->DrawCopy("SAME");
 	c1->cd(2);
 	pHist->DrawCopy();
 	c1->cd(3);
 	nHist->DrawCopy();
+	c1->cd(4);
+	pVrHist->DrawCopy();
 	
 	float rt, cp;
 	myBenchmark->Summary(rt, cp);
